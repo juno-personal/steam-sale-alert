@@ -19,8 +19,8 @@ const SEARCH_URL =
   "?force_infinite=1&hwtype=0&supportedlang=koreana&untags=9130" +
   "&category1=998&specials=1&ndl=1&infinite=1";
 
-const PAGE_SIZE = 50;
-const MAX_PAGES = 20;
+const PAGE_SIZE = 100;
+const MAX_PAGES = 100;
 const MIN_RATING = 75;
 const MIN_REVIEWS = 1000;
 const USER_AGENT =
@@ -70,13 +70,20 @@ async function extractGamesFromHtml(html, page) {
 }
 
 async function fetchPage(browser, start) {
-  const response = await fetch(buildSearchUrl(start), {
-    headers: {
-      "User-Agent": USER_AGENT,
-      "X-Requested-With": "XMLHttpRequest",
-      Referer: "https://store.steampowered.com/search/",
-    },
-  });
+  let response;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    response = await fetch(buildSearchUrl(start), {
+      headers: {
+        "User-Agent": USER_AGENT,
+        "X-Requested-With": "XMLHttpRequest",
+        Referer: "https://store.steampowered.com/search/",
+      },
+    });
+    if (response.status !== 429) break;
+    const waitMs = 5000 * Math.pow(2, attempt);
+    console.warn(`[scrape] HTTP 429 대기 ${waitMs / 1000}초 후 재시도 (start=${start})`);
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
   if (!response.ok) {
     throw new Error(`Steam 검색 API 오류: HTTP ${response.status} (start=${start})`);
   }
