@@ -1,57 +1,61 @@
 /**
- * SteamDB Sale Scraper → GAS Web App POST
- * 
- * 사용법:
- *   node send_to_gas.js --token SHARED_TOKEN --games games.json
- * 
- * 필수 Script Properties (GAS):
- *   SHARED_TOKEN    - GitHub Actions와 공유하는 인증 토큰
- *   GAS_WEBAPP_URL  - 웹앱 /exec URL
+ * SteamDB 수집 결과를 Google Apps Script Web App으로 전송합니다.
+ *
+ * GitHub Actions에서 실행:
+ *   node scraper/send_to_gas.js --games games.json
+ *
+ * 필수 환경 변수:
+ *   GAS_WEBAPP_URL - /exec로 끝나는 GAS Web App URL
+ *   GAS_TOKEN      - GAS의 SHARED_TOKEN과 같은 값
  */
 
-import { } from "node:fs";
-import UrlFetchApp from "UrlFetchApp";
+import { readFile } from "node:fs/promises";
+import process from "node:process";
+import minimist from "minimist";
 
-const args = require("minimist")(process.argv.slice(2));
+const args = minimist(process.argv.slice(2));
+const gamesFile = String(args.games || "games.json");
+const webAppUrl = String(process.env.GAS_WEBAPP_URL || "").trim();
+const token = String(process.env.GAS_TOKEN || "").trim();
 
-if (!args.token || !args.games) {
-  console.error("Usage: node send_to_gas.js --token <TOKEN> --games <GAMES_JSON>");
+if (!webAppUrl || !token) {
+  console.error("[send] GAS_WEBAPP_URL 또는 GAS_TOKEN 환경 변수가 없습니다.");
   process.exit(1);
 }
 
-const token = args.token;
-const gamesData = JSON.parse(require("fs").readFileSync(args.games, "utf8"));
-const games = gamesData.games || [];
+if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec\/?$/.test(webAppUrl)) {
+  console.error("[send] 올바른 GAS /exec URL이 아닙니다: " + webAppUrl);
+  process.exit(1);
+}
 
-const webappUrl = PropertiesService.getScriptProperties().getProperty("GAS_WEBAPP_URL");
+let payload;
+try {
+  const source = JSON.parse(await readFile(gamesFile, "utf8"));
+  payload = {
+    token: token,
+    sourceUrl: source.sourceUrl || null,
+    scrapedAt: source.scrapedAt || new Date().toISOString(),
+    games: Array.isArray(source.games) ? source.games : [],
+  };
+} catch (error) {
+  console.error("[send] games.json 읽기 실패: " + error.message);
+  process.exit(1);
+}
 
-const payload = JSON.stringify({
-  token: token,
-  games: games,
-  sourceUrl: gamesData.sourceUrl,
-});
-
-console.log(`POSTing ${games.length} games to GAS...`);
-
-const options = {
-  method: "post",
-  contentType: "application/json",
-  payload: payload,
-  muteHttpExceptions: true,
-};
+console.log(`[send] 게임 ${payload.games.length}개를 GAS로 전송합니다.`);
+console.log(`[send] 대상: ${new URL(webAppUrl).origin}`);
 
 try {
-  const response = UrlFetchApp.fetch(webappUrl, options);
-  const code = response.getResponseCode();
-  console.log("GAS 응답 코드: " + code);
-  
-  if (code === 200 || code === 204) {
-    console.log("성공: GAS로 데이터 전송 완료");
-  } else {
-    const respText = response.getContentText();
-    console.warn("경고: HTTP " + code + " - " + (respText || "no response"));
-  }
+  const response = await fetch(webAppUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const responseText = await response.text();
+  console.log(`[send] GAS HTTP ${response.status}: ${responseText}`);
+
+  if (!response.ok) process.exit(2);
 } catch (error) {
-  console.error("GAS 전송 오류: " + error.message);
+  console.error("[send] GAS 전송 실패: " + error.message);
   process.exit(1);
 }

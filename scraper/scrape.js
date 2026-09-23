@@ -12,6 +12,7 @@
  */
 
 import { writeFileSync } from "node:fs";
+import minimist from "minimist";
 import { chromium } from "playwright";
 import {
   TARGET_URL,
@@ -236,7 +237,7 @@ export async function scrape({ channel = null, headed = false, verbose = false, 
 }
 
 async function main() {
-  const args = require("minimist")(process.argv.slice(2));
+  const args = minimist(process.argv.slice(2));
   const result = await scrape({ channel: args.channel, headed: args.headed, verbose: args.verbose });
 
   console.log(`[scrape] URL: ${result.sourceUrl}`);

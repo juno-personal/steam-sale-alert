@@ -1,0 +1,15 @@
+{
+  "name": "steamdb-sale-alert-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SteamDB sale scraper for GitHub Actions",
+  "scripts": {
+    "scrape": "node scraper/scrape.js --out games.json --verbose",
+    "send": "node scraper/send_to_gas.js --games games.json"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8",
+    "playwright": "^1.54.1"
+  }
+}
