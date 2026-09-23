@@ -1,0 +1,35 @@
+name: SteamDB Sales Scraper
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 매일 9:00 KST에 실행
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright
+        run: npx playwright install
+        
+      - name: Run scraper
+        run: node scraper/scrape.js --out games.json
+        
+      - name: Send to GAS
+        env:
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
+        run: |
+          node scraper/send_to_gas.js \
+            --token "$GAS_TOKEN" \
+            --games games.json
