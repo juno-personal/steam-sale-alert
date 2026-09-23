@@ -24,7 +24,7 @@ jobs:
       - name: Install Chromium browser
         run: npx playwright install --with-deps chromium
 
-      - name: Scrape SteamDB sales
+      - name: Scrape Steam Store sales
         run: node scraper/scrape.js --out games.json --verbose
 
       - name: Send results to Google Apps Script
