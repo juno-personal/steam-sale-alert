@@ -1,8 +1,8 @@
 /**
- * STEAMDB SALE ALERT v1.0
+ * STEAM SALE ALERT v1.0
  *
  * 수신 데이터: GitHub Actions -> 이 Web App
- * 이메일 대상: 최근 24시간内 시작된 SteamDB 할인 게임
+ * 이메일 대상: Steam 공식 스토어에서 수집한 할인 게임
  *
  * 필수 Script Properties:
  *   SHARED_TOKEN    - GitHub Actions GAS_TOKEN과 동일한 값
@@ -162,6 +162,7 @@ function sanitizeGames(games) {
         name: String(game.name).trim(),
         discountPercent: toFiniteNumber(game.discountPercent),
         rating: toFiniteNumber(game.rating),
+        reviewCount: toFiniteNumber(game.reviewCount),
         originalPrice: cleanText(game.originalPrice),
         salePrice: cleanText(game.salePrice),
         imageUrl: safeImageUrl(game.imageUrl),
@@ -246,7 +247,7 @@ function sendSaleEmail(games) {
   const topDiscount = games.reduce(function (max, game) {
     return Math.max(max, Number(game.discountPercent) || 0);
   }, 0);
-  const subject = "[SteamDB] " + count + "개 새 할인 • 최대 " + topDiscount + "%";
+  const subject = "[Steam] " + count + "개 새 할인 • 최대 " + topDiscount + "%";
 
   GmailApp.sendEmail(
     recipient,
@@ -254,7 +255,7 @@ function sendSaleEmail(games) {
     "HTML 이메일을 지원하는 메일 클라이언트에서 확인하세요.",
     {
       htmlBody: buildEmailHTML(games),
-      name: "SteamDB Sale Alert",
+      name: "Steam Sale Alert",
       noReply: true,
     }
   );
@@ -277,7 +278,7 @@ function buildEmailHTML(games) {
 
   html += '<!doctype html><html><head><meta charset="utf-8">';
   html += '<meta name="viewport" content="width=device-width,initial-scale=1">';
-  html += '<title>SteamDB Sale Alert</title></head>';
+  html += '<title>Steam Sale Alert</title></head>';
   html += '<body style="margin:0;padding:0;background:#f3f6fb;color:#172033;font-family:Arial,Helvetica,sans-serif;">';
   html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f3f6fb;"><tr><td align="center" style="padding:24px 12px;">';
   html += '<table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(31,45,68,.08);">';
@@ -286,14 +287,14 @@ function buildEmailHTML(games) {
   html += '<tr><td style="padding:28px 28px 24px;background:#172033;">';
   html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>';
   html += '<td><div style="color:#ffffff;font-size:25px;font-weight:700;line-height:32px;">STEAM <span style="color:#66c0f4;">SALE ALERT</span></div>';
-  html += '<div style="padding-top:7px;color:#b8c2d1;font-size:13px;line-height:19px;">최근 24시간 새롭게 시작한 할인</div></td>';
+  html += '<div style="padding-top:7px;color:#b8c2d1;font-size:13px;line-height:19px;">현재 Steam 스토어에서 진행 중인 할인</div></td>';
   html += '<td align="right"><div style="display:inline-block;padding:7px 11px;background:#2f80ed;border-radius:999px;color:#ffffff;font-size:12px;font-weight:700;white-space:nowrap;">' + games.length + ' GAMES</div></td>';
   html += '</tr></table></td></tr>';
 
   // Summary
   html += '<tr><td style="padding:20px 24px;background:#edf6ff;border-bottom:1px solid #d9e7f7;">';
   html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>';
-  html += '<td style="font-size:14px;color:#34506d;line-height:20px;"><strong>새로운 SteamDB 할인</strong>을 확인하세요.<br>시작일 최신순, 평점 높은 순으로 정렬했습니다.</td>';
+  html += '<td style="font-size:14px;color:#34506d;line-height:20px;"><strong>새로운 Steam 할인</strong>을 확인하세요.<br>평점이 높은 게임부터 정렬했습니다.</td>';
   html += '<td align="right" style="padding-left:12px;color:#738399;font-size:12px;white-space:nowrap;">' + escapeHtml(dateText) + '</td>';
   html += '</tr></table></td></tr>';
 
@@ -304,8 +305,8 @@ function buildEmailHTML(games) {
 
   // Footer
   html += '<tr><td style="padding:22px 24px 26px;background:#f8fafc;border-top:1px solid #e7edf4;">';
-  html += '<div style="color:#738399;font-size:11px;line-height:18px;">가격과 할인율은 SteamDB 수집 시점 기준이며 실제 Steam 가격과 다를 수 있습니다. 최종 가격은 Steam 상점 구매 페이지에서 확인하세요.</div>';
-  html += '<div style="padding-top:10px;color:#96a1b2;font-size:10px;line-height:16px;">STEAMDB SALE ALERT v' + STEAMDB_CONFIG.VERSION + ' · SteamDB sales feed</div>';
+  html += '<div style="color:#738399;font-size:11px;line-height:18px;">가격과 할인율은 수집 시점 기준이며 실제 Steam 가격과 다를 수 있습니다. 최종 가격은 Steam 상점 구매 페이지에서 확인하세요.</div>';
+  html += '<div style="padding-top:10px;color:#96a1b2;font-size:10px;line-height:16px;">STEAM SALE ALERT v' + STEAMDB_CONFIG.VERSION + ' · Steam Store sales feed</div>';
   html += '</td></tr>';
 
   html += '</table></td></tr></table></body></html>';
@@ -319,9 +320,10 @@ function buildGameCard(game) {
   const discount = toFiniteNumber(game.discountPercent);
   const salePrice = escapeHtml(game.salePrice || "가격 확인");
   const originalPrice = escapeHtml(game.originalPrice || "");
-  const productUrl = game.productUrl || "https://steamdb.info/sales/";
+  const productUrl = game.productUrl || "https://store.steampowered.com/";
   const ratingText = rating !== null ? formatRating(rating) : "평가 정보 없음";
-  const saleEndText = formatSaleEnd(game);
+  const reviewCount = toFiniteNumber(game.reviewCount);
+  const reviewText = reviewCount !== null ? formatReviewCount(reviewCount) : "리뷰 수 없음";
 
   let html = '<tr><td style="padding:18px 20px;border-bottom:1px solid #edf1f6;">';
   html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>';
@@ -337,8 +339,7 @@ function buildGameCard(game) {
     html += '<div style="padding-bottom:7px;"><span style="display:inline-block;padding:4px 8px;background:#e8f5ec;color:#16834a;border-radius:5px;font-size:12px;font-weight:700;">' + discount + '% OFF</span></div>';
   }
   html += '<div style="color:#172033;font-size:18px;font-weight:700;line-height:24px;">' + title + '</div>';
-  html += '<div style="padding-top:6px;color:#6f7c91;font-size:12px;line-height:18px;">★ ' + escapeHtml(ratingText) + '</div>';
-  html += '<div style="padding-top:6px;color:#b42318;font-size:13px;font-weight:700;line-height:19px;">⏱ 할인 종료: ' + escapeHtml(saleEndText) + '</div>';
+  html += '<div style="padding-top:6px;color:#6f7c91;font-size:12px;line-height:18px;">★ ' + escapeHtml(ratingText) + ' <span style="color:#c1c8d2;">·</span> 리뷰 ' + escapeHtml(reviewText) + '</div>';
 
   html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="padding-top:10px;"><tr>';
   html += '<td style="padding-right:12px;color:#172033;font-size:21px;font-weight:700;line-height:28px;">' + salePrice + '</td>';
@@ -348,7 +349,7 @@ function buildGameCard(game) {
   html += '</tr></table>';
 
   html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="padding-top:12px;"><tr>';
-  html += '<td style="width:100%;"><a href="' + escapeHtml(productUrl) + '" target="_blank" style="display:block;padding:10px 14px;background:#1b6fc2;border-radius:8px;color:#ffffff;text-align:center;text-decoration:none;font-size:13px;font-weight:700;line-height:18px;">SteamDB에서 보기</a></td>';
+  html += '<td style="width:100%;"><a href="' + escapeHtml(productUrl) + '" target="_blank" style="display:block;padding:10px 14px;background:#1b6fc2;border-radius:8px;color:#ffffff;text-align:center;text-decoration:none;font-size:13px;font-weight:700;line-height:18px;">Steam에서 보기</a></td>';
   html += '</tr></table>';
   html += '</td></tr></table></td></tr>';
 
@@ -360,6 +361,10 @@ function formatSaleEnd(game) {
   if (endDate) return formatKoreanDateTime(endDate);
   if (game.saleEndText) return String(game.saleEndText);
   return "확인 필요";
+}
+
+function formatReviewCount(value) {
+  return Number(value).toLocaleString("en-US") + "개";
 }
 
 function formatRating(value) {

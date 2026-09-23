@@ -1,4 +1,4 @@
-name: SteamDB Sales Scraper
+name: Steam Store Sales Scraper
 
 on:
   workflow_dispatch:
@@ -32,3 +32,11 @@ jobs:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
         run: node scraper/send_to_gas.js --games games.json
+
+      - name: Upload blocked-page screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: steamdb-error-screenshot
+          path: steamdb-blocked.png
+          if-no-files-found: ignore
