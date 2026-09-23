@@ -69,6 +69,57 @@ async function extractGamesFromHtml(html, page) {
   });
 }
 
+function calculateSteamDbRating(positiveVotes, negativeVotes) {
+  const totalVotes = positiveVotes + negativeVotes;
+  if (!totalVotes) return null;
+  const reviewScore = positiveVotes / totalVotes;
+  const adjusted = reviewScore - (reviewScore - 0.5) * Math.pow(2, -Math.log10(totalVotes + 1));
+  return Number((adjusted * 100).toFixed(2));
+}
+
+async function fetchReviewSummary(appId) {
+  const url = "https://store.steampowered.com/appreviews/" + encodeURIComponent(appId) +
+    "?json=1&language=all&purchase_type=all&filter=recent&num_per_page=0";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+    if (response.status !== 429) {
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.query_summary || null;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+  }
+  return null;
+}
+
+async function enrichSteamDbRatings(games) {
+  const seen = new Set();
+  const candidates = games.filter((game) => {
+    if (!game.packageId || seen.has(game.packageId)) return false;
+    seen.add(game.packageId);
+    return true;
+  });
+  let enriched = 0;
+  for (const game of candidates) {
+    const summary = await fetchReviewSummary(game.packageId);
+    if (!summary) continue;
+    const positive = Number(summary.total_positive) || 0;
+    const negative = Number(summary.total_negative) || 0;
+    const total = Number(summary.total_reviews) || positive + negative;
+    const steamDbRating = calculateSteamDbRating(positive, negative);
+    if (steamDbRating !== null) {
+      game.rating = steamDbRating;
+      game.reviewCount = total;
+      game.positiveVotes = positive;
+      game.negativeVotes = negative;
+      game.steamReviewDescription = summary.review_score_desc || null;
+      enriched += 1;
+    }
+    if (enriched % 50 === 0) console.log(`[reviews] ${enriched}/${candidates.length}개 SteamDB Rating 계산 완료`);
+  }
+  return games;
+}
+
 async function fetchPage(browser, start) {
   let response;
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -122,7 +173,8 @@ export async function scrape() {
 
     console.log(`[scrape] 파싱된 게임 ${allGames.length}개`);
     const seen = new Set();
-    const games = allGames
+    const enrichedGames = await enrichSteamDbRatings(allGames);
+    const games = enrichedGames
       .filter((game) => {
         if (!game.packageId || !game.name || seen.has(game.packageId)) return false;
         seen.add(game.packageId);
