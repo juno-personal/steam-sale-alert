@@ -97,7 +97,13 @@ async function enrichSteamDbRatings(games) {
   const candidates = games.filter((game) => {
     if (!game.packageId || seen.has(game.packageId)) return false;
     seen.add(game.packageId);
-    return true;
+    // 검색 API에서 기본 조건을 먼저 충족한 게임만 보정하여
+    // 리뷰 API 호출 수를 크게 줄입니다.
+    return (
+      game.discountPercent > 0 &&
+      game.rating !== null && game.rating >= MIN_RATING &&
+      game.reviewCount !== null && game.reviewCount >= MIN_REVIEWS
+    );
   });
   let enriched = 0;
   for (const game of candidates) {
