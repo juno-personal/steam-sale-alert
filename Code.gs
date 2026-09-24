@@ -30,7 +30,7 @@ const EMAIL_REVIEW_GROUPS = Object.freeze([
   { label: "30K~100K", min: 30000, max: 100000 },
   { label: "10K~30K", min: 10000, max: 30000 },
   { label: "1K~10K", min: 1000, max: 10000 },
-  { label: "100~1K", min: 100, max: 1000 },
+  { label: "500~1K", min: 500, max: 1000 },
 ]);
 
 const EMAIL_RATING_GROUPS = Object.freeze([

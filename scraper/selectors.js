@@ -5,8 +5,8 @@
  * SteamDB는 테이블 기반 구조이므로 td/th 셀렉터를 사용합니다.
  */
 
-// 타겟 URL: 카테고리=-888(전체), min_discount=0, min_rating=70, min_reviews=100
-export const TARGET_URL = "https://steamdb.info/sales/?category=-888&min_discount=0&min_rating=70&min_reviews=100";
+// 타겟 URL: 카테고리=-888(전체), min_discount=0, min_rating=70, min_reviews=500
+export const TARGET_URL = "https://steamdb.info/sales/?category=-888&min_discount=0&min_rating=70&min_reviews=500";
 
 // 테이블 행 셀렉터: 판매 중인 상품 행들 (dt-row 클래스 사용)
 export const ROW_SELECTORS = [
