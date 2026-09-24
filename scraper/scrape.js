@@ -167,15 +167,12 @@ export async function scrape() {
     let totalCount = 0;
 
     for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex += 1) {
+      // 페이지 사이에 짧은 간격을 두고 Steam API 요청 속도를 조절합니다.
+      if (pageIndex > 0) await new Promise((resolve) => setTimeout(resolve, 500));
       const start = pageIndex * PAGE_SIZE;
       const result = await fetchPage(browser, start);
       totalCount = result.totalCount;
       allGames.push(...result.games);
-      // 1,000개마다 짧게 쉬어 Steam의 연속 요청 속도를 조절합니다.
-      if (allGames.length > 0 && allGames.length % 1000 === 0) {
-        console.log("[scrape] 1,000개 수집 완료 • 1초 대기");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
       console.log(
         `[scrape] ${result.games.length}개 수집 (누적 ${allGames.length}/${totalCount || "?"})`
       );
