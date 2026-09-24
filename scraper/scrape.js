@@ -82,10 +82,15 @@ async function fetchReviewSummary(appId) {
     "?json=1&language=all&purchase_type=all&filter=all&num_per_page=0";
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-    if (response.status !== 429) {
+    if (![429, 502, 503, 504].includes(response.status)) {
       if (!response.ok) return null;
       const data = await response.json();
       return data.query_summary || null;
+    }
+    if (response.status === 429) {
+      console.warn(`[reviews] HTTP 429 대기 ${(attempt + 1)}초 후 재시도 (app=${appId})`);
+    } else {
+      console.warn(`[reviews] HTTP ${response.status} 대기 ${(attempt + 1)}초 후 재시도 (app=${appId})`);
     }
     await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
   }
@@ -136,9 +141,9 @@ async function fetchPage(browser, start) {
         Referer: "https://store.steampowered.com/search/",
       },
     });
-    if (response.status !== 429) break;
+    if (![429, 502, 503, 504].includes(response.status)) break;
     const waitMs = 5000 * Math.pow(2, attempt);
-    console.warn(`[scrape] HTTP 429 대기 ${waitMs / 1000}초 후 재시도 (start=${start})`);
+    console.warn(`[scrape] HTTP ${response.status} 대기 ${waitMs / 1000}초 후 재시도 (start=${start})`);
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
   if (!response.ok) {
