@@ -49,13 +49,18 @@ async function extractGamesFromHtml(html, page) {
       const appId = row.getAttribute("data-ds-appid");
       const href = row.getAttribute("href") || `https://store.steampowered.com/app/${appId}/`;
       const tooltip = attr(".search_reviewscore .search_review_summary", "data-tooltip-html") || "";
-      const match = tooltip.match(/(\d{1,3})%\s+of\s+the\s+([\d,]+)\s+user reviews/i);
+      const match = tooltip.match(/(\d{1,3})%\s+of\s+the\s+([\d,]+)\s+user reviews/i) ||
+        tooltip.match(/([\d,]+)\s*개[^%]*?(\d{1,3})%/);
       return {
         packageId: appId,
         name: text(".search_name .title"),
         discountPercent: Number((text(".discount_pct") || "0").match(/\d+/)?.[0] || 0),
-        rating: match ? Number(match[1]) : null,
-        reviewCount: match ? Number(match[2].replace(/,/g, "")) : null,
+        rating: match
+          ? (/user reviews/i.test(tooltip) ? Number(match[1]) : Number(match[2]))
+          : null,
+        reviewCount: match
+          ? Number((/user reviews/i.test(tooltip) ? match[2] : match[1]).replace(/,/g, ""))
+          : null,
         originalPrice: text(".discount_original_price"),
         salePrice: text(".discount_final_price"),
         imageUrl: attr(".search_capsule img", "src"),
