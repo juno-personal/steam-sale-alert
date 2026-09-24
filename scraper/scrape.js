@@ -79,7 +79,7 @@ function calculateSteamDbRating(positiveVotes, negativeVotes) {
 
 async function fetchReviewSummary(appId) {
   const url = "https://store.steampowered.com/appreviews/" + encodeURIComponent(appId) +
-    "?json=1&language=all&purchase_type=all&filter=recent&num_per_page=0";
+    "?json=1&language=all&purchase_type=all&filter=all&num_per_page=0";
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
     if (response.status !== 429) {
@@ -168,7 +168,7 @@ export async function scrape() {
 
     for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex += 1) {
       // Steam의 검색 API 속도 제한을 피하기 위해 페이지 사이에 간격을 둡니다.
-      if (pageIndex > 0) await new Promise((resolve) => setTimeout(resolve, 500));
+      if (pageIndex > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
       const start = pageIndex * PAGE_SIZE;
       const result = await fetchPage(browser, start);
       totalCount = result.totalCount;
@@ -182,6 +182,24 @@ export async function scrape() {
     console.log(`[scrape] 파싱된 게임 ${allGames.length}개`);
     const seen = new Set();
     const enrichedGames = await enrichSteamDbRatings(allGames);
+    const discountedGames = enrichedGames.filter((game) => game.discountPercent > 0);
+    const ratingGames = discountedGames.filter((game) => {
+      return game.rating !== null && game.rating >= MIN_RATING;
+    });
+    const reviewGames = discountedGames.filter((game) => {
+      return game.reviewCount !== null && game.reviewCount >= MIN_REVIEWS;
+    });
+    const eligibleGames = discountedGames.filter((game) => {
+      return (
+        game.rating !== null && game.rating >= MIN_RATING &&
+        game.reviewCount !== null && game.reviewCount >= MIN_REVIEWS
+      );
+    });
+    console.log(`[filter] 할인 게임: ${discountedGames.length}개`);
+    console.log(`[filter] 평점 ${MIN_RATING}% 이상: ${ratingGames.length}개`);
+    console.log(`[filter] 리뷰 ${MIN_REVIEWS}개 이상: ${reviewGames.length}개`);
+    console.log(`[filter] 평점·리뷰 조건 모두 충족: ${eligibleGames.length}개`);
+
     const games = enrichedGames
       .filter((game) => {
         if (!game.packageId || !game.name || seen.has(game.packageId)) return false;
