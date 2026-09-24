@@ -16,7 +16,7 @@ import { chromium } from "playwright";
 
 const SEARCH_URL =
   "https://store.steampowered.com/search/results" +
-  "?force_infinite=1&hwtype=0&supportedlang=koreana&cc=ae&untags=9130" +
+  "?force_infinite=1&hwtype=0&l=korean&cc=ae&untags=9130" +
   "&category1=998&specials=1&ndl=1&infinite=1";
 
 const PAGE_SIZE = 100;
