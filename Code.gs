@@ -18,11 +18,26 @@ const STEAMDB_CONFIG = Object.freeze({
   ENDPOINT: "steamdb-sale-alert",
   SENT_GAMES_KEY: "STEAMDB_SENT_GAMES_V1",
   MAX_SENT_GAMES: 1000,
+  EMAIL_CHUNK_SIZE: 60,
   TOKEN_PROP: "SHARED_TOKEN",
   RECIPIENT_PROP: "RECIPIENT_EMAIL",
   DEFAULT_WORKFLOW: "steamdb-sales.yml",
   DEFAULT_REF: "main",
 });
+
+const EMAIL_REVIEW_GROUPS = Object.freeze([
+  { label: "100K+", min: 100000, max: Infinity },
+  { label: "30K~100K", min: 30000, max: 100000 },
+  { label: "10K~30K", min: 10000, max: 30000 },
+  { label: "1K~10K", min: 1000, max: 10000 },
+  { label: "100~1K", min: 100, max: 1000 },
+]);
+
+const EMAIL_RATING_GROUPS = Object.freeze([
+  { label: "95%~100%", min: 95, max: 101 },
+  { label: "80%~95%", min: 80, max: 95 },
+  { label: "70%~80%", min: 70, max: 80 },
+]);
 
 /** GitHub Action이 보내는 JSON을 처리합니다. */
 function doPost(e) {
@@ -48,6 +63,7 @@ function doPost(e) {
 
     return jsonResponse({
       ok: true,
+      handler: "doPost",
       received: games.length,
       newGames: result.newGames,
       alreadySent: result.alreadySent,
@@ -67,6 +83,7 @@ function doGet() {
     endpoint: STEAMDB_CONFIG.ENDPOINT,
     tokenConfigured: Boolean(getScriptProperty(STEAMDB_CONFIG.TOKEN_PROP)),
     sentGamesCount: Object.keys(loadSentGames()).length,
+    dedupeMode: "packageId-only",
   });
 }
 
@@ -98,9 +115,43 @@ function triggerWorker() {
 
   const workflow = props.getProperty("GITHUB_WORKFLOW") || STEAMDB_CONFIG.DEFAULT_WORKFLOW;
   const ref = props.getProperty("GITHUB_REF") || STEAMDB_CONFIG.DEFAULT_REF;
-  const url = "https://api.github.com/repos/" + encodeURIComponent(repo) +
-    "/actions/workflows/" + encodeURIComponent(workflow) + "/dispatches";
+  const listResponse = UrlFetchApp.fetch(
+    "https://api.github.com/repos/" + repo + "/actions/workflows?per_page=100",
+    {
+      headers: {
+        Authorization: "Bearer " + pat,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "gas-steamdb-sale-alert",
+      },
+      muteHttpExceptions: true,
+    }
+  );
 
+  if (listResponse.getResponseCode() !== 200) {
+    throw new Error(
+      "GitHub workflow 목록 조회 실패 HTTP " + listResponse.getResponseCode() +
+      ": " + listResponse.getContentText()
+    );
+  }
+
+  const workflows = JSON.parse(listResponse.getContentText()).workflows || [];
+  const selected = workflows.find(function (item) {
+    return item.path === ".github/workflows/" + workflow ||
+      item.name === workflow ||
+      String(item.id) === workflow;
+  });
+
+  if (!selected) {
+    throw new Error(
+      "워크플로를 찾을 수 없습니다: " + workflow +
+      ". 사용 가능한 워크플로: " +
+      workflows.map(function (item) { return item.name + " (" + item.path + ")"; }).join(", ")
+    );
+  }
+
+  const url = "https://api.github.com/repos/" + repo +
+    "/actions/workflows/" + encodeURIComponent(selected.id) + "/dispatches";
   const response = UrlFetchApp.fetch(url, {
     method: "post",
     contentType: "application/json",
@@ -118,7 +169,11 @@ function triggerWorker() {
   if (code !== 204 && code !== 200) {
     throw new Error("GitHub workflow 실행 실패 HTTP " + code + ": " + response.getContentText());
   }
-  return { ok: true, status: code, workflow: workflow, ref: ref };
+  return { ok: true, status: code, workflow: selected.name, workflowId: selected.id, ref: ref };
+}
+
+function authorizeExternalRequests() {
+  UrlFetchApp.fetch("https://www.google.com", { muteHttpExceptions: true });
 }
 
 function setupDailyTrigger() {
@@ -141,9 +196,14 @@ function processGames(games) {
   let emailed = 0;
 
   if (filtered.newGames.length > 0) {
-    sendSaleEmail(filtered.newGames);
-    updateSentGamesRecord(filtered.newGames);
-    emailed = 1;
+    const orderedGames = sortForEmail(filtered.newGames);
+    // 평점 그룹 순서를 유지하면서 60개씩 메일을 나눕니다.
+    for (let start = 0; start < orderedGames.length; start += STEAMDB_CONFIG.EMAIL_CHUNK_SIZE) {
+      const chunk = orderedGames.slice(start, start + STEAMDB_CONFIG.EMAIL_CHUNK_SIZE);
+      sendSaleEmail(chunk, start + 1, orderedGames.length);
+      emailed += 1;
+    }
+    updateSentGamesRecord(orderedGames);
   }
 
   return {
@@ -151,6 +211,27 @@ function processGames(games) {
     alreadySent: filtered.alreadySent.length,
     emailed: emailed,
   };
+}
+
+function sortForEmail(games) {
+  return games.slice().sort(function (a, b) {
+    const aReviewGroup = findEmailGroupIndex(EMAIL_REVIEW_GROUPS, toFiniteNumber(a.reviewCount));
+    const bReviewGroup = findEmailGroupIndex(EMAIL_REVIEW_GROUPS, toFiniteNumber(b.reviewCount));
+    if (aReviewGroup !== bReviewGroup) return aReviewGroup - bReviewGroup;
+
+    const aRatingGroup = findEmailGroupIndex(EMAIL_RATING_GROUPS, toFiniteNumber(a.rating));
+    const bRatingGroup = findEmailGroupIndex(EMAIL_RATING_GROUPS, toFiniteNumber(b.rating));
+    if (aRatingGroup !== bRatingGroup) return aRatingGroup - bRatingGroup;
+
+    return (toFiniteNumber(b.reviewCount) || 0) - (toFiniteNumber(a.reviewCount) || 0);
+  });
+}
+
+function findEmailGroupIndex(groups, value) {
+  const index = groups.findIndex(function (group) {
+    return value !== null && value >= group.min && value < group.max;
+  });
+  return index === -1 ? groups.length : index;
 }
 
 function sanitizeGames(games) {
@@ -177,7 +258,7 @@ function sanitizeGames(games) {
       if (startedDifference) return startedDifference;
       return (b.rating || -1) - (a.rating || -1);
     })
-    .slice(0, 100);
+    .slice(0, 500);
 }
 
 function filterNewGamesOnly(games) {
@@ -187,9 +268,12 @@ function filterNewGamesOnly(games) {
 
   games.forEach(function (game) {
     const key = normalizeGameKey(game);
-    const version = gameVersion(game);
-    if (sent[key] === version) alreadySent.push(game);
-    else newGames.push(game);
+    // 테스트 중에는 이미 기록된 packageId를 무조건 중복으로 처리합니다.
+    if (Object.prototype.hasOwnProperty.call(sent, key)) {
+      alreadySent.push(game);
+    } else {
+      newGames.push(game);
+    }
   });
   return { newGames: newGames, alreadySent: alreadySent };
 }
@@ -239,7 +323,7 @@ function pruneSentGames(sent) {
     .forEach(function (key) { delete sent[key]; });
 }
 
-function sendSaleEmail(games) {
+function sendSaleEmail(games, fromIndex, totalCount) {
   const recipient = getScriptProperty(STEAMDB_CONFIG.RECIPIENT_PROP) || Session.getActiveUser().getEmail();
   if (!recipient) throw new Error("수신자 이메일을 찾을 수 없습니다. RECIPIENT_EMAIL을 설정하세요.");
 
@@ -247,7 +331,10 @@ function sendSaleEmail(games) {
   const topDiscount = games.reduce(function (max, game) {
     return Math.max(max, Number(game.discountPercent) || 0);
   }, 0);
-  const subject = "[Steam] " + count + "개 새 할인 • 최대 " + topDiscount + "%";
+  const rangeText = fromIndex && totalCount
+    ? " (" + fromIndex + "–" + (fromIndex + count - 1) + "/" + totalCount + ")"
+    : "";
+  const subject = "[Steam] " + count + "개 새 할인 • 최대 " + topDiscount + "%" + rangeText;
 
   GmailApp.sendEmail(
     recipient,
@@ -298,9 +385,40 @@ function buildEmailHTML(games) {
   html += '<td align="right" style="padding-left:12px;color:#738399;font-size:12px;white-space:nowrap;">' + escapeHtml(dateText) + '</td>';
   html += '</tr></table></td></tr>';
 
-  // Cards
-  games.forEach(function (game) {
-    html += buildGameCard(game);
+  // Table header: 고정폭을 사용해 모든 행에서 열 위치를 맞춥니다.
+  html += '<tr><td colspan="5" style="padding:10px 12px 6px 12px;background:#f8fafc;color:#6f7c91;font-size:11px;font-weight:700;letter-spacing:.3px;">' +
+    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="table-layout:fixed;"><colgroup>' +
+    '<col width="58"><col><col width="60"><col width="100"><col width="76">' +
+    '</colgroup><tr>' +
+    '<td style="width:58px;">이미지</td>' +
+    '<td style="text-align:left;">게임 이름</td>' +
+    '<td style="text-align:right;">할인율</td>' +
+    '<td style="text-align:right;">현재 가격<br>기존 가격</td>' +
+    '<td style="text-align:right;">평점<br>리뷰 수</td>' +
+    '</tr></table></td></tr>';
+
+  EMAIL_REVIEW_GROUPS.forEach(function (reviewGroup) {
+    const reviewGroupGames = games.filter(function (game) {
+      return isInEmailGroup(game.reviewCount, reviewGroup);
+    });
+    if (reviewGroupGames.length === 0) return;
+
+    html += buildReviewGroupHeader(reviewGroup.label, reviewGroupGames.length);
+    EMAIL_RATING_GROUPS.forEach(function (ratingGroup) {
+      const ratingGroupGames = reviewGroupGames
+        .filter(function (game) {
+          return isInEmailGroup(game.rating, ratingGroup);
+        })
+        .sort(function (a, b) {
+          return (toFiniteNumber(b.reviewCount) || 0) - (toFiniteNumber(a.reviewCount) || 0);
+        });
+
+      if (ratingGroupGames.length === 0) return;
+      html += buildRatingGroupHeader(ratingGroup.label, ratingGroupGames.length);
+      ratingGroupGames.forEach(function (game) {
+        html += buildGameRow(game);
+      });
+    });
   });
 
   // Footer
@@ -313,7 +431,28 @@ function buildEmailHTML(games) {
   return html;
 }
 
-function buildGameCard(game) {
+function isInEmailGroup(value, group) {
+  const number = toFiniteNumber(value);
+  return number !== null && number >= group.min && number < group.max;
+}
+
+function buildReviewGroupHeader(label, count) {
+  return '<tr><td colspan="5" style="padding:15px 14px 8px 14px;background:#dcecff;border-top:1px solid #c8dcf5;border-bottom:1px solid #c8dcf5;">' +
+    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>' +
+    '<td style="color:#163b63;font-size:15px;font-weight:700;line-height:21px;">리뷰 수 ' + escapeHtml(label) + '</td>' +
+    '<td align="right" style="color:#52708f;font-size:12px;line-height:21px;">' + count + '개</td>' +
+    '</tr></table></td></tr>';
+}
+
+function buildRatingGroupHeader(label, count) {
+  return '<tr><td colspan="5" style="padding:10px 14px 6px 14px;background:#eef4fb;border-bottom:1px solid #dce7f3;">' +
+    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>' +
+    '<td style="color:#34506d;font-size:12px;font-weight:700;line-height:18px;">평점 ' + escapeHtml(label) + '</td>' +
+    '<td align="right" style="color:#7b8a9d;font-size:11px;line-height:18px;">' + count + '개</td>' +
+    '</tr></table></td></tr>';
+}
+
+function buildGameRow(game) {
   const imageUrl = game.imageUrl;
   const title = escapeHtml(game.name);
   const rating = toFiniteNumber(game.rating);
@@ -321,38 +460,38 @@ function buildGameCard(game) {
   const salePrice = escapeHtml(game.salePrice || "가격 확인");
   const originalPrice = escapeHtml(game.originalPrice || "");
   const productUrl = game.productUrl || "https://store.steampowered.com/";
-  const ratingText = rating !== null ? formatRating(rating) : "평가 정보 없음";
+  const ratingText = rating !== null ? formatRating(rating) : "-";
   const reviewCount = toFiniteNumber(game.reviewCount);
-  const reviewText = reviewCount !== null ? formatReviewCount(reviewCount) : "리뷰 수 없음";
+  const reviewText = reviewCount !== null ? formatReviewCount(reviewCount) : "-";
 
-  let html = '<tr><td style="padding:18px 20px;border-bottom:1px solid #edf1f6;">';
-  html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>';
+  let html = '<tr><td colspan="5" style="padding:7px 12px;border-bottom:1px solid #edf1f6;">';
+  html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="table-layout:fixed;"><colgroup>' +
+    '<col width="58"><col><col width="60"><col width="100"><col width="76">' +
+    '</colgroup><tr>';
 
+  html += '<td width="58" valign="middle" style="width:58px;padding-right:10px;">';
   if (imageUrl) {
-    html += '<td width="112" valign="top" style="width:112px;padding-right:16px;">';
-    html += '<img src="' + escapeHtml(imageUrl) + '" width="112" height="112" alt="' + title + '" style="display:block;width:112px;height:112px;object-fit:cover;border-radius:12px;background:#e8edf4;">';
-    html += '</td>';
+    html += '<a href="' + escapeHtml(productUrl) + '" target="_blank"><img src="' + escapeHtml(imageUrl) + '" width="52" height="38" alt="' + title + '" style="display:block;width:52px;height:38px;object-fit:cover;border-radius:4px;background:#e8edf4;border:0;"></a>';
+  } else {
+    html += '<div style="width:52px;height:38px;border-radius:4px;background:#e8edf4;"></div>';
   }
+  html += '</td>';
 
-  html += '<td valign="top">';
-  if (discount !== null) {
-    html += '<div style="padding-bottom:7px;"><span style="display:inline-block;padding:4px 8px;background:#e8f5ec;color:#16834a;border-radius:5px;font-size:12px;font-weight:700;">' + discount + '% OFF</span></div>';
-  }
-  html += '<div style="color:#172033;font-size:18px;font-weight:700;line-height:24px;">' + title + '</div>';
-  html += '<div style="padding-top:6px;color:#6f7c91;font-size:12px;line-height:18px;">★ ' + escapeHtml(ratingText) + ' <span style="color:#c1c8d2;">·</span> 리뷰 ' + escapeHtml(reviewText) + '</div>';
+  html += '<td valign="middle" style="text-align:left;color:#172033;font-size:14px;font-weight:700;line-height:18px;">';
+  html += '<a href="' + escapeHtml(productUrl) + '" target="_blank" style="color:#172033;text-decoration:none;">' + title + '</a>';
+  html += '</td>';
 
-  html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="padding-top:10px;"><tr>';
-  html += '<td style="padding-right:12px;color:#172033;font-size:21px;font-weight:700;line-height:28px;">' + salePrice + '</td>';
-  if (originalPrice) {
-    html += '<td valign="middle" style="color:#9aa4b2;font-size:13px;text-decoration:line-through;">' + originalPrice + '</td>';
-  }
-  html += '</tr></table>';
+  html += '<td width="62" align="right" valign="middle" style="width:62px;text-align:right;color:#16834a;font-size:13px;font-weight:700;">';
+  html += (discount !== null ? "-" + discount + "%" : "-") + '</td>';
 
-  html += '<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="padding-top:12px;"><tr>';
-  html += '<td style="width:100%;"><a href="' + escapeHtml(productUrl) + '" target="_blank" style="display:block;padding:10px 14px;background:#1b6fc2;border-radius:8px;color:#ffffff;text-align:center;text-decoration:none;font-size:13px;font-weight:700;line-height:18px;">Steam에서 보기</a></td>';
-  html += '</tr></table>';
-  html += '</td></tr></table></td></tr>';
+  html += '<td valign="middle" style="text-align:right;color:#172033;font-size:13px;font-weight:700;line-height:17px;">' + salePrice;
+  html += '<br><span style="color:#9aa4b2;font-size:10px;font-weight:400;text-decoration:line-through;">' + (originalPrice || "-") + '</span>';
+  html += '</td>';
 
+  html += '<td valign="middle" style="text-align:right;color:#172033;font-size:12px;line-height:17px;">★ ' + escapeHtml(ratingText);
+  html += '<br><span style="color:#6f7c91;font-size:10px;font-weight:400;">' + escapeHtml(reviewText) + '</span>';
+  html += '</td>';
+  html += '</tr></table></td></tr>';
   return html;
 }
 
@@ -364,11 +503,15 @@ function formatSaleEnd(game) {
 }
 
 function formatReviewCount(value) {
-  return Number(value).toLocaleString("en-US") + "개";
+  const count = Number(value);
+  if (!Number.isFinite(count)) return "-";
+  if (count >= 100000) return Math.floor(count / 1000) + "K+";
+  const thousands = (count / 1000).toFixed(1).replace(/\.0$/, "");
+  return thousands + "K";
 }
 
 function formatRating(value) {
-  return value <= 1 ? (value * 100).toFixed(0) + "%" : value.toFixed(1) + " / 100";
+  return Math.floor(value <= 1 ? value * 100 : value) + "%";
 }
 
 function formatKoreanDateTime(date) {
@@ -430,6 +573,7 @@ function previewEmail() {
       name: "SteamDB Sale Alert Sample Game",
       discountPercent: 75,
       rating: 94,
+      reviewCount: 12500,
       originalPrice: "AED 199.99",
       salePrice: "AED 49.99",
       imageUrl: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/730/header.jpg",
@@ -443,6 +587,7 @@ function previewEmail() {
       name: "Mobile Responsive Preview",
       discountPercent: 50,
       rating: 88,
+      reviewCount: 4200,
       originalPrice: "AED 79.99",
       salePrice: "AED 39.99",
       imageUrl: null,

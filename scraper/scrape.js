@@ -16,13 +16,13 @@ import { chromium } from "playwright";
 
 const SEARCH_URL =
   "https://store.steampowered.com/search/results" +
-  "?force_infinite=1&hwtype=0&supportedlang=koreana&untags=9130" +
+  "?force_infinite=1&hwtype=0&supportedlang=koreana&cc=ae&untags=9130" +
   "&category1=998&specials=1&ndl=1&infinite=1";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 100;
-const MIN_RATING = 75;
-const MIN_REVIEWS = 1000;
+const MIN_RATING = 70;
+const MIN_REVIEWS = 100;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
