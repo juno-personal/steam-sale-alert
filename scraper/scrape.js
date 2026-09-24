@@ -167,6 +167,8 @@ export async function scrape() {
     let totalCount = 0;
 
     for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex += 1) {
+      // Steam의 검색 API 속도 제한을 피하기 위해 페이지 사이에 간격을 둡니다.
+      if (pageIndex > 0) await new Promise((resolve) => setTimeout(resolve, 500));
       const start = pageIndex * PAGE_SIZE;
       const result = await fetchPage(browser, start);
       totalCount = result.totalCount;

@@ -258,7 +258,9 @@ function sanitizeGames(games) {
       if (startedDifference) return startedDifference;
       return (b.rating || -1) - (a.rating || -1);
     })
-    .slice(0, 500);
+    // 수신 데이터 전체를 중복 제거 단계로 넘깁니다.
+    // 이메일은 아래에서 60개씩 자동 분할됩니다.
+    .slice(0, 2000);
 }
 
 function filterNewGamesOnly(games) {
