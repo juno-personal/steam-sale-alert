@@ -30,13 +30,14 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: gas/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefix gas
 
       - name: Scrape Steam Store sales
         run: >-
-          node scraper/scrape.js --out games.json
+          node gas/scraper/scrape.js --out games.json
           ${{ inputs.force_notify && '--force-notify' || '' }}
 
       # history.json을 먼저 커밋한다.
@@ -46,7 +47,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add history.json
+          git add gas/history.json
           git diff-index --quiet HEAD || git commit -m "chore: update scrape history [skip ci]"
           git push
 
@@ -54,7 +55,7 @@ jobs:
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
-        run: node scraper/send_to_gas.js --games games.json
+        run: node gas/scraper/send_to_gas.js --games games.json
 
       # 공개 저장소(steam-sale-alert-site)에 앱 데이터만 밀어넣는다.
       # 이 저장소를 푸시하면 공개 저장소의 Pages 워크플로가 자동 배포한다.

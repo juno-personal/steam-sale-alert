@@ -93,7 +93,7 @@ const RE_ORIGINAL = /class="discount_original_price">([^<]*)</;
 const RE_FINAL = /class="discount_final_price">([^<]*)</;
 const RE_TOOLTIP = /class="search_review_summary[^"]*"[^>]*data-tooltip-html="([^"]*)"/;
 
-const HISTORY_FILE = "history.json";
+const HISTORY_FILE = "gas/history.json";
 
 export function decodeEntities(value) {
   return value
