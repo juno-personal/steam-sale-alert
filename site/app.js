@@ -675,6 +675,18 @@
     state.dataDate = (data.scrapedAt || "").slice(0, 10);
     state.list = data.games || [];
 
+    // ──▼ 혜택 좋은 순 점수 계산 및 정렬 ────────────────────────────────
+    // 점수 공식: 할인율 40% + 절약액 40% + 평점 20% 비율
+    function getDealScore(game) {
+      const discount = game.d || 0;                    // 할인율
+      const savings = (game.o || 0) - (game.s || 0); // 절약 금액
+      const review = game.r || 0;                      // 조정평점
+      return discount * 0.4 + (savings / 100) * 0.4 + review * 0.2;
+    }
+    // games 배열 정렬 (점수가 높은 순 / 내림차순)
+    state.list.sort((a, b) => getDealScore(b) - getDealScore(a));
+    // ──────────────────────────────────────────────────────────────────
+
     // 가격 상한을 먼저 정한 뒤에 저장된 필터를 복원해야 한다.
     // 순서가 바뀌면 priceMin/max 의 max 가 아직 0 이어서 복원값이 깨진다.
     calibratePrice();
