@@ -2,7 +2,7 @@
 
 GitHub Pages로 배포되는 정적 앱입니다. 빌드 단계 없이 `index.html` + `games.json`으로 동작합니다.
 
-- URL: https://lostempus06-eng.github.io/steam-sale-alert-site/
+- URL: https://lostempus06-eng.github.io/steam-sale-alert/
 - 원본: https://github.com/lostempus06-eng/steam-sale-alert-site
 
 ## 구조
