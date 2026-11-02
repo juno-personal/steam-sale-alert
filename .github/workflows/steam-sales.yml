@@ -1,0 +1,152 @@
+name: Steam Store Sales Scraper
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_notify:
+        description: "send_to_gas 실패로 알림을 놓쳤을 때 전체 대상으로 강제 발송"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # history.json 커밋 및 푸시
+
+# 두 실행이 겹치면 history.json 충돌로 서로의 기록을 덮어쓴다.
+concurrency:
+  group: steam-sales
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    # 전체 스캔은 579페이지 + 1.5초 간격으로 최소 15분, 429 재시도 여유 포함 30분 이상
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scrape Steam Store sales
+        run: >-
+          node scraper/scrape.js --out games.json
+          ${{ inputs.force_notify && '--force-notify' || '' }}
+
+      # history.json을 먼저 커밋한다.
+      # 이 스텝이 뒤에 있으면 알림 전송 실패 시 기록이 유실되어 다음 실행에서
+      # 이미 보낸 게임을 전부 신규로 다시 발송한다.
+      - name: Commit scrape history
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add history.json
+          git diff-index --quiet HEAD || git commit -m "chore: update scrape history [skip ci]"
+          git push
+
+      - name: Send results to Google Apps Script
+        env:
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
+        run: node scraper/send_to_gas.js --games games.json
+
+      # 공개 저장소(steam-sale-alert-site)에 앱 데이터만 밀어넣는다.
+      # 이 저장소를 푸시하면 공개 저장소의 Pages 워크플로가 자동 배포한다.
+      # SITE_REPO 는 Variables 탭에도 Secrets 탭에도 있을 수 있으므로 둘 다 읽는다.
+      # (저장소 이름은 공개 정보라 Secret 에 두어도 무방하다)
+      - name: Publish games.json to site repository
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+          SITE_REPO: ${{ vars.SITE_REPO || secrets.SITE_REPO }}
+        run: |
+          set -euo pipefail
+
+          # 시크릿에 붙여넣을 때 줄바꿈이 따라 들어가는 일이 흔하다.
+          # 개행이 들어가면 인증 문자열이 깨져 404 가 난다. 모두 제거한다.
+          tok="${SITE_REPO_TOKEN:-}"
+          tok="${tok//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          tok="${tok#"${tok%%[![:space:]]*}"}"
+          tok="${tok%"${tok##*[![:space:]]}"}"
+
+          if [ -z "$tok" ]; then
+            echo "::notice title=사이트 배포 건너뜀::SITE_REPO_TOKEN 이 비어 있습니다. Settings > Secrets and variables > Actions > Secrets 탭에 넣으세요."
+            exit 0
+          fi
+          # 토큰 값은 안 드러내고 형식과 길이만 확인한다.
+          echo "토큰 확인: 길이 ${#tok}"
+          case "$tok" in
+            github_pat_*) echo "토큰 형식: fine-grained PAT (github_pat_)" ;;
+            ghp_*)        echo "토큰 형식: classic PAT (ghp_)" ;;
+            *)            echo "::warning title=토큰 형식 의외::github_pat_ 로 시작하지 않습니다. 값이 잘렸거나 다른 문자열일 수 있습니다." ;;
+          esac
+
+          # 저장소 주소를 정규화한다.
+          # 주의: 이전 코드의 ${repo##*/} 는 소유자를 잘라내버렸다.
+          # 그 결과 github.com/이름 형태가 되어 존재하지 않는 저장소를 가리켰다.
+          # "github.com/" 은 계정명이 아니라 호스트명이므로 따로 제거한다.
+          OWNER="lostempus06-eng"
+          NAME="steam-sale-alert-site"
+
+          repo="${SITE_REPO:-}"
+          repo="${repo#"${repo%%[![:space:]]*}"}"   # 앞 공백 제거
+          repo="${repo%"${repo##*[![:space:]]}"}"   # 뒤 공백 제거
+          repo="${repo%.git}"                        # 끝의 .git 제거
+          repo="${repo#https://github.com/}"         # 전체 URL 접두사 제거
+          repo="${repo#http://github.com/}"
+          repo="${repo#github.com/}"                 # 호스트만 있는 형태 제거
+
+          if [ -z "$repo" ]; then
+            echo "::notice title=SITE_REPO 미설정::기본값 ${OWNER}/${NAME} 을 사용합니다."
+            repo="${OWNER}/${NAME}"
+          fi
+
+          # 소유자가 없으면 붙인다. 이름만 들어온 경우를 복구한다.
+          case "$repo" in
+            */*) : ;;
+            *)   repo="${OWNER}/${repo}" ;;
+          esac
+
+          # Secrets 탭에 있으면 로그가 마스킹되므로 값 대신 일치 여부만 출력한다.
+          if [ "$repo" = "${OWNER}/${NAME}" ]; then
+            echo "게시 대상 확인: 정상"
+          else
+            echo "::warning title=SITE_REPO 값 불일치::기대값은 '${OWNER}/${NAME}' 입니다."
+            echo "현재 값 길이 ${#repo}, 앞 8글자는 ${repo:0:8} 입니다."
+          fi
+          echo "게시 대상: ${repo}"
+
+          # 클론 전에 권한만 먼저 확인한다. 실패하면 원인을 구분해 알려준다.
+          if ! git ls-remote "https://x-access-token:${tok}@github.com/${repo}.git" >/dev/null 2>&1; then
+            echo "::error title=사이트 접근 실패::저장소 '${repo}' 에 접근할 수 없습니다."
+            echo "PAT 설정이 맞다면 시크릿의 토큰 값이 문제입니다."
+            echo "1) SITE_REPO_TOKEN 을 토큰 발급 화면에서 다시 복사해 덮어쓰세요 (줄바꿈 포함 복사 금지)"
+            echo "2) 토큰 만료일이 지나지 않았는지 확인하세요"
+            echo "3) 아래 '토큰 확인' 줄의 길이가 실제와 맞는지 비교하세요"
+            exit 1
+          fi
+
+          cd /tmp
+          git clone --depth 1 "https://x-access-token:${tok}@github.com/${repo}.git" site
+          cd site
+          cp "$GITHUB_WORKSPACE/games.json" ./games.json
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add games.json
+          git diff-index --quiet HEAD || git commit -m "chore: update games data"
+          git push
+          echo "games.json 게시 완료: ${repo}"
+
+      - name: Upload scrape output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: games-json-on-failure
+          path: games.json
+          if-no-files-found: ignore

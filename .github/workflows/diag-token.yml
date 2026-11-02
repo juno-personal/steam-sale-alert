@@ -1,0 +1,150 @@
+name: Diagnose site repo token
+
+# 스크래핑(15분) 없이 시크릿 토큰만 검사한다.
+# 가설: API로는 저장소 접근이 되는데 git over HTTPS로는 안 된다.
+# 두 경로의 차이를 러너 환경에서 직접 확인한다.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect the secret
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          tok="${SITE_REPO_TOKEN:-}"
+          tok="${tok//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          tok="${tok#\"${tok%%[![:space:]]*}\"}"
+          tok="${tok%\"${tok##*[![:space:]]}\"}"
+
+          echo "length      : ${#tok}"
+          echo "first 11    : ${tok:0:11}"
+          echo "last 4      : ${tok: -4}"
+          case "$tok" in
+            github_pat_*) echo "shape        : fine-grained" ;;
+            ghp_*)        echo "shape        : classic" ;;
+            *)            echo "::warning title=형식 의외::github_pat_ 로 시작하지 않음" ;;
+          esac
+          # 토큰을 sha256으로만 기록한다. 값은 노출하지 않는다.
+          echo "sha256      : $(printf '%s' "$tok" | sha256sum | cut -c1-16)"
+
+      - name: Is the token live on this runner
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          tok="${SITE_REPO_TOKEN//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          echo "== GET /user =="
+          code=$(curl -s -o /tmp/user.json -w '%{http_code}' \
+            -H "Authorization: Bearer $tok" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/user)
+          echo "http $code"
+          if [ "$code" = "200" ]; then
+            grep -o '"login":"[^"]*"' /tmp/user.json | head -1
+            grep -o '"type":"[^"]*"' /tmp/user.json | head -1
+          else
+            cat /tmp/user.json
+          fi
+
+      - name: API repository access
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          tok="${SITE_REPO_TOKEN//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          echo "== API repo access =="
+          for repo in steamdb-sale-alert steam-sale-alert-site; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer $tok" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/lostempus06-eng/$repo")
+            echo "  $repo -> $code"
+          done
+
+      - name: git over HTTPS, several URL forms
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          tok="${SITE_REPO_TOKEN//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          # 소유자가 반드시 필요하다. github.com/이름 은 존재하지 않는 주소다.
+          repo="lostempus06-eng/steam-sale-alert-site"
+          echo "== git ls-remote forms =="
+
+          for label in "x-access-token" "no-user" "git"; do
+            case "$label" in
+              x-access-token) url="https://x-access-token:${tok}@github.com/${repo}.git" ;;
+              no-user)        url="https://${tok}@github.com/${repo}.git" ;;
+              git)            url="https://git:${tok}@github.com/${repo}.git" ;;
+            esac
+            if out=$(git ls-remote "$url" 2>&1); then
+              echo "  $label -> OK"
+            else
+              echo "  $label -> FAIL"
+              echo "$out" | sed 's/github_pat_[A-Za-z0-9_]*/<TOKEN>/g' | sed 's/^/      /'
+            fi
+          done
+
+          # anon info/refs 가 열려 있는데 git clone 이 안 되면 러너 네트워크/설정 문제다.
+      - name: Isolate curl vs git
+        run: |
+          repo="steam-sale-alert-site"
+          # curl 은 계정 이름을 직접 적는다. 두 경로 모두 소유자가 필요하다.
+          echo "== curl, no auth =="
+          for url in \
+            "https://github.com/lostempus06-eng/${repo}" \
+            "https://github.com/lostempus06-eng/${repo}.git/info/refs?service=git-upload-pack" \
+            "https://api.github.com/repos/lostempus06-eng/${repo}"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url" 2>/dev/null) || code="curl-error"
+            echo "  $code  $url"
+          done
+          echo ""
+
+          echo "== DNS =="
+          getent hosts github.com || echo "  getent failed"
+          echo ""
+
+          echo "== git environment =="
+          echo "  git --version : $(git --version)"
+          git config --list --show-origin 2>/dev/null \
+            | grep -Ei 'http\.|url\.|credential|proxy|protocol' \
+            | sed 's/^/  /' || echo "  (no relevant config)"
+          echo ""
+
+          echo "== git clone, verbose =="
+          rm -rf /tmp/probe
+          GIT_TERMINAL_PROMPT=0 git clone --depth 1 \
+            "https://github.com/lostempus06-eng/${repo}.git" /tmp/probe > /tmp/clone.log 2>&1
+          echo "  exit=$?"
+          head -20 /tmp/clone.log | sed 's/^/  /'
+
+          echo ""
+          echo "== codeload tarball =="
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            "https://codeload.github.com/lostempus06-eng/${repo}/tar.gz/refs/heads/main") || code="curl-error"
+          echo "  $code  codeload"
+
+      - name: What the token actually says
+        env:
+          SITE_REPO_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          tok="${SITE_REPO_TOKEN//$'\r'/}"
+          tok="${tok//$'\n'/}"
+          echo "== fine-grained token introspection =="
+          for path in "user/token" "applications/token"; do
+            code=$(curl -s -o /tmp/t.json -w '%{http_code}' \
+              -H "Authorization: Bearer $tok" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/$path")
+            echo "  /$path -> $code"
+            [ "$code" = "200" ] && cat /tmp/t.json
+          done

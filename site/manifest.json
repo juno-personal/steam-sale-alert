@@ -1,0 +1,18 @@
+{
+  "name": "Steam Sale Alert",
+  "short_name": "Steam Sale",
+  "description": "Steam 스토어 진행 중 할인 목록. 가격·평점·리뷰 수로 필터링.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1b2838",
+  "theme_color": "#1b2838",
+  "lang": "ko",
+  "categories": ["shopping", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
