@@ -710,7 +710,7 @@
     el.stats.textContent = "";
   }
 
-  fetch("site/games.json", { cache: "no-cache" })
+  fetch("games.json", { cache: "no-cache" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
