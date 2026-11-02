@@ -2,8 +2,8 @@
 
 import { state } from "./state.js";
 import { el } from "./elements.js";
-import { RANGES, LS_KEY, fullRange } from "./config.js";
-import { snapValue, setRangeState } from "./range.js";
+import { RANGES, LS_KEY } from "./config.js";
+import { snapValue, setRangeState, fullRange } from "./range.js";
 
 /** 필터 값 읽기 */
 export function readFilters() {

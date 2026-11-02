@@ -2,11 +2,26 @@
 
 import { state } from "./state.js";
 import { el } from "./elements.js";
-import { RANGES, fullRange } from "./config.js";
+import { RANGES } from "./config.js";
 import { readFilters, saveFilters } from "./storage.js";
-import { renderReset } from "./rendering.js";
-import { setRangeState, paintRange } from "./range.js";
+import { render, renderReset } from "./rendering.js";
+import { setRangeState, paintRange, fullRange, sliderMax, toReal, snapValue } from "./range.js";
 import { updateLabels } from "./ui_labels.js";
+
+/**
+ * 네이티브 range input 의 프로그램적 값 변경을 실제 범위 상태로 반영한다.
+ * 슬라이더 값(0~sliderMax) → 백분율 → 실제 값 → 스냅 순으로 변환한다.
+ */
+function setRange(key) {
+  const span = sliderMax(key);
+  const loPct = (Number(el[key + "Min"].value) / span) * 100;
+  const hiPct = (Number(el[key + "Max"].value) / span) * 100;
+  setRangeState(
+    key,
+    snapValue(key, toReal(key, loPct)),
+    snapValue(key, toReal(key, hiPct))
+  );
+}
 
 /** 입력/정렬/필터 관련 전역 이벤트 바인딩 */
 export function bind() {

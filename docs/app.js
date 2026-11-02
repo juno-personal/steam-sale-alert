@@ -2,8 +2,8 @@
 
 import { state } from "./state.js";
 import { el } from "./elements.js";
-import { RANGES, fullRange } from "./config.js";
-import { buildThumbsAll } from "./range.js";
+import { RANGES } from "./config.js";
+import { buildThumbsAll, fullRange } from "./range.js";
 import { loadFilters, saveFilters } from "./storage.js";
 import { updateLabels, updateSummary } from "./ui_labels.js";
 import { header, calibratePrice } from "./ui.js";

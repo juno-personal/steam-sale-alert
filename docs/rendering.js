@@ -3,8 +3,8 @@
 import { state } from "./state.js";
 import { el } from "./elements.js";
 import { apply } from "./filtering.js";
-import { esc, compact, storeUrl, money } from "./utils.js";
-import { imgUrl } from "./format.js";
+import { esc, compact, storeUrl } from "./utils.js";
+import { imgUrl, money } from "./format.js";
 
 /** 카드 한 장 HTML */
 export function cardHtml(g) {

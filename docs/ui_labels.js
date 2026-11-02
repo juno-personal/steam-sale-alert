@@ -6,7 +6,8 @@ import { RANGES } from "./config.js";
 import { readFilters } from "./storage.js";
 import { toPct, snapValue } from "./range.js";
 import { fullRange } from "./range.js";
-import { compact, money } from "./utils.js";
+import { compact } from "./utils.js";
+import { money } from "./format.js";
 
 /** 단일 필터의 조건 텍스트 (예: "5,000~10,000 원") */
 function rangeText(key, f) {

@@ -2,8 +2,8 @@
 
 import { state } from "./state.js";
 import { el } from "./elements.js";
-import { RANGES, fullRange, sliderMax } from "./config.js";
-import { toPct } from "./range.js";
+import { RANGES } from "./config.js";
+import { toPct, sliderMax } from "./range.js";
 import { saveFilters } from "./storage.js";
 import { renderReset } from "./rendering.js";
 import { money } from "./format.js";

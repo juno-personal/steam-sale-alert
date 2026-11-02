@@ -7,6 +7,10 @@
 import { RANGES, LOG_LO, LOG_HI } from "./config.js";
 import { state } from "./state.js";
 import { el } from "./elements.js";
+// 순환 참조이지만 모두 이벤트 핸들러 내부에서만 호출하므로 안전하다.
+import { updateLabels } from "./ui_labels.js";
+import { saveFilters } from "./storage.js";
+import { renderReset } from "./rendering.js";
 
 /** 특정 키의 선형 스케일 상한 ( reviews 는 로그 스케일이라 항상 100 ). */
 export function sliderMax(key) {
@@ -67,19 +71,17 @@ export function fullRange(key) {
 
 /** 스냅된 실제 값으로 상태를 설정하고 화면을 갱신한다. */
 export function setRangeState(key, lo, hi) {
-  const r = RANGES[key];
-  const nlo = Math.max(r.lo, Math.min(r.hi, lo));
-  const nhi = Math.max(r.lo, Math.min(r.hi, hi));
+  let r = RANGES[key];
+  let nlo = Math.max(r.lo, Math.min(r.hi, lo));
+  let nhi = Math.max(r.lo, Math.min(r.hi, hi));
   if (nlo > nhi) {
-    const t = nlo;
+    let t = nlo;
     nlo = nhi;
     nhi = t;
   }
   state.ranges[key] = { lo: nlo, hi: nhi };
   paintRange(key);
 }
-
-
 
 /** 상태 -> 슬라이더 위치 / 채움 / 썸 좌표 */
 export function paintRange(key) {
@@ -115,8 +117,6 @@ export function nearestStop(stops, value) {
   return best;
 }
 
-
-
 /**
  * Thumb 요소에 pointer 이벤트를 바인딩하여
  * 마우스/터치가 같은 경로로 동작하게 한다.
@@ -143,9 +143,6 @@ export function bindRangePointer(key, track) {
 
   /**
    * 썸 위치를 실제 스냅 값으로 바꾼다.
-   * 슬라이더 값(로그 위치)을 거꾸로 되돌리면 정수 반올림 때문에
-   * 30000 이 30306 같은 값이 되어 정지점을 잃는다.
-   * 그래서 pct -> 실제값 -> 스냅 해서 상태에 직접 넣는다.
    */
   function apply(pct) {
     const p = state.ranges[key];
@@ -165,6 +162,7 @@ export function bindRangePointer(key, track) {
       saveFilters();
       renderReset();
     }, 160);
+  }
 
   track.addEventListener("pointerdown", (e) => {
     if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
@@ -187,7 +185,6 @@ export function bindRangePointer(key, track) {
     if (!active) return;
     if (activeEl) activeEl.classList.remove("dragging");
     active = null;
-
     activeEl = null;
     try { track.releasePointerCapture(e.pointerId); } catch (err) { /* noop */ }
     saveFilters();
@@ -198,8 +195,6 @@ export function bindRangePointer(key, track) {
   track.addEventListener("pointercancel", end);
 
   // 키보드 접근성. 한 칸 이동도 스냅 단위를 따른다.
-
-
   ["lo", "hi"].forEach((side) => {
     const thumb = track.querySelector(".rng-thumb-" + side);
     if (!thumb) return;
@@ -240,9 +235,30 @@ export function bindRangePointer(key, track) {
         setRangeState(key, Math.min(next, p.lo), next);
       }
       updateLabels();
+      saveFilters();
+      renderReset();
     });
   });
 }
 
-
-
+/**
+ * 각 rng-track 에 커스텀 썸 2개(.rng-thumb-lo/.rng-thumb-hi)를 만들고
+ * pointer 이벤트를 바인딩한다. 네이티브 input 은 CSS 로 숨기고
+ * 커스텀 썸이 시각적/조작 인터페이스를 대신한다.
+ */
+export function buildThumbsAll() {
+  Object.keys(RANGES).forEach((key) => {
+    const track = el[key + "Min"].parentElement;
+    if (!track) return;
+    ["lo", "hi"].forEach((side) => {
+      if (track.querySelector(".rng-thumb-" + side)) return;
+      const thumb = document.createElement("div");
+      thumb.className = "rng-thumb rng-thumb-" + side;
+      thumb.tabIndex = 0;
+      thumb.setAttribute("role", "slider");
+      track.appendChild(thumb);
+    });
+    paintRange(key);
+    bindRangePointer(key, track);
+  });
+}
