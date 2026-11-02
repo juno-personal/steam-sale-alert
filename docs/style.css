@@ -1,0 +1,426 @@
+/* Steam 계열 다크 블루 테마 */
+:root {
+  --bg: #1b2838;
+  --bg-deep: #171a21;
+  --panel: #2a475e;
+  --panel-2: #1f2937;
+  --line: #3b5c73;
+  --text: #c7d5e0;
+  --text-dim: #8f98a0;
+  --blue: #66c0f4;
+  --green: #a4d007;
+  --accent: #1a9fff;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ---------- 상단 바 ---------- */
+.topbar {
+  background: linear-gradient(180deg, #1b2838 0%, #16202c 100%);
+  border-bottom: 1px solid #000;
+  padding: 14px 16px 10px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+}
+.topbar-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.brand { font-size: 20px; font-weight: 700; letter-spacing: .3px; }
+.brand-mark { color: #fff; }
+.brand-mark-alt { color: var(--blue); }
+.stats { color: var(--text-dim); font-size: 12px; }
+.stats b { color: var(--text); font-weight: 700; }
+.stamp {
+  max-width: 1240px;
+  margin: 4px auto 0;
+  color: #5f6b78;
+  font-size: 11px;
+}
+
+/* ---------- 필터 ---------- */
+.filters {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--panel-2);
+  border-bottom: 1px solid #000;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.filters-head {
+  display: none;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 8px 12px;
+  gap: 10px;
+  align-items: center;
+}
+.filter-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #22303f;
+  text-align: left;
+}
+.ft-label { font-weight: 700; font-size: 13px; color: #fff; }
+.ft-summary {
+  flex: 1;
+  font-size: 12px;
+  color: var(--blue);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ft-caret { color: var(--text-dim); font-size: 11px; transition: transform .15s; }
+.filters.open .ft-caret { transform: rotate(180deg); }
+.ft-count { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
+.filters-inner { max-width: 1240px; margin: 0 auto; padding: 12px 16px; }
+.row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 10px; flex-wrap: wrap; }
+.row-last { margin-bottom: 0; align-items: center; }
+/* ---------- 범위형 필터 (양핸들 슬라이더) ---------- */
+.rng {
+  flex: 1 1 260px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rng-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rng-head label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.rng-head output { color: var(--blue); font-weight: 700; font-size: 12px; }
+
+.rng-track { position: relative; height: 30px; }
+.rng-track::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 13px;
+  height: 4px;
+  border-radius: 2px;
+  background: #0e1620;
+  border: 1px solid var(--line);
+}
+.rng-fill {
+  position: absolute;
+  top: 13px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+/* 두 input 이 같은 트랙을 공유한다.
+ * 썸은 브라우저의 ::-webkit-slider-thumb 가 아니라 직접 만든 div 다.
+ * input 에 pointer-events:none 을 주고 썸에 auto 를 주는 방식은
+ * 마우스에서는 동작하지만 터치 기기에서는 한쪽만 잡히는 문제가 있었다.
+ * (pseudo-element 의 pointer-events 오버라이드가 터치에서는 신뢰되지 않는다)
+ * 썸을 div 로 만들고 .rng-track 에서 포인터 이벤트를 직접 처리한다.
+ * input 은 값 저장과 키보드 접근 용도로만 쓴다. */
+.rng-track {
+  position: relative;
+  height: 30px;
+  touch-action: none;
+  cursor: pointer;
+}
+.rng-track input[type=range] {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: 30px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.rng-track input[type=range]:focus { outline: none; }
+
+.rng-thumb {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--accent);
+  box-shadow: 0 1px 5px rgba(0,0,0,.6);
+  cursor: grab;
+  touch-action: none;
+  transition: transform .08s;
+}
+.rng-thumb:hover { transform: scale(1.1); }
+.rng-thumb.dragging { transform: scale(1.22); cursor: grabbing; box-shadow: 0 0 0 7px rgba(26,159,255,.22); }
+.rng-thumb:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(26,159,255,.45); }
+.rng-track.pinch-lo .rng-thumb-lo,
+.rng-track.pinch-hi .rng-thumb-hi { z-index: 3; }
+
+/* 눈금은 실제 값 좌표에 배치한다. 로그 스케일이라 균등 배치가 틀린다. */
+.rng-ticks {
+  position: relative;
+  height: 13px;
+  margin-top: -2px;
+}
+.rng-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #5f6b78;
+  white-space: nowrap;
+}
+.rng-ticks span:first-child { transform: none; }
+.rng-ticks span:last-child { transform: translateX(-100%); }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+.field.grow { flex: 1 1 220px; }
+.field label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  display: flex;
+  gap: 8px;
+}
+.field output { color: var(--blue); font-weight: 700; }
+
+input[type=search], select {
+  width: 100%;
+  background: #0e1620;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+input[type=search]:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(26,159,255,.25);
+}
+
+input[type=range] {
+  width: 100%;
+  accent-color: var(--accent);
+  height: 22px;
+}
+
+.check { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; user-select: none; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.spacer { flex: 1; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  padding: 8px 14px;
+  background: #22303f;
+  color: var(--text);
+}
+button:hover { background: #2b3b4d; }
+button.ghost { background: transparent; color: var(--text-dim); }
+
+/* ---------- 목록 ---------- */
+main { max-width: 1240px; margin: 0 auto; padding: 16px; }
+
+.result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.result-bar b { color: #fff; }
+
+.grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1300px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- 좁은 화면: 필터를 접는다 ----------
+ * 모바일에서 필터 폼이 첫 화면을 통째로 차지해 카드가 하나도 안 보였다.
+ * 기본은 접힌 상태로 조건 요약만 한 줄에 보여주고, 눌러서 펼친다.
+ * 넓은 화면에서는 항상 펼쳐 둔다. */
+@media (max-width: 860px) {
+  .filters-head { display: flex; }
+  .filters-body { display: none; }
+  .filters.open .filters-body { display: block; }
+  .topbar { padding: 12px 14px 8px; }
+  .brand { font-size: 18px; }
+  main { padding: 12px; }
+}
+
+.card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid #0e1620;
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: inherit;
+  text-decoration: none;
+  min-height: 58px;
+}
+.card:hover { background: #33526b; }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.thumb {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0e1620;
+  display: block;
+}
+.thumb-fallback {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 32px;
+  border-radius: 4px;
+  background: #0e1620;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #45596b;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.card-body { min-width: 0; flex: 1; }
+
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.name {
+  font-weight: 700;
+  color: #fff;
+  font-size: 14px;
+  line-height: 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.discount {
+  flex: 0 0 auto;
+  background: var(--green);
+  color: #1b2838;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 두 번째 줄: 할인가 · 기존가 ······· 평점 · 리뷰수 */
+.card-mid {
+  margin-top: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.price { color: var(--green); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.price-off {
+  color: #6f7c91;
+  text-decoration: line-through;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.card-mid .meta {
+  margin-left: auto;
+  padding-left: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.rating { color: #c7d5e0; }
+.reviews { color: var(--text-dim); }
+.badge-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #1a9fff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.sentinel { height: 1px; }
+.empty { text-align: center; color: var(--text-dim); padding: 48px 0; }
+
+.foot {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  color: #5f6b78;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.foot p { margin: 0 0 6px; }
+.foot-sub { color: #46525e; }
+
+/* 설치 안내 배너 */
+.install {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 30;
+  max-width: 460px;
+  margin: 0 auto;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: #2a475e;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.5);
+}
+.install.show { display: flex; }
+.install-text { flex: 1; font-size: 12px; line-height: 1.45; }
+.install-text b { color: #fff; }
+.install button { padding: 6px 12px; font-size: 12px; }
+.install .dismiss { background: transparent; border: none; color: var(--text-dim); padding: 4px 6px; }
