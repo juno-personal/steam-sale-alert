@@ -428,7 +428,7 @@
     el.grid.insertAdjacentHTML("beforeend", html);
     state.shown = end;
 
-    el.count.innerHTML = "조건相符 <b>" + list.length.toLocaleString("ko-KR") + "</b>개" +
+    el.count.innerHTML = "조건 <b>" + list.length.toLocaleString("ko-KR") + "</b>개" +
       (list.length ? " 중 <b>" + state.shown.toLocaleString("ko-KR") + "</b>개 표시" : "");
     el.countMini.textContent = list.length.toLocaleString("ko-KR") + "개";
     el.empty.hidden = list.length > 0;
@@ -681,7 +681,7 @@
       const discount = game.d || 0;                    // 할인율
       const savings = (game.o || 0) - (game.s || 0); // 절약 금액
       const review = game.r || 0;                      // 조정평점
-      return discount * 0.4 + (savings / 100) * 0.4 + review * 0.2;
+      return discount * 0.0 + (savings / 100) * 0.5 + review * 0.5;
     }
     // games 배열 정렬 (점수가 높은 순 / 내림차순)
     state.list.sort((a, b) => getDealScore(b) - getDealScore(a));
@@ -710,7 +710,7 @@
     el.stats.textContent = "";
   }
 
-  fetch("docs/games.json", { cache: "no-cache" })
+  fetch("games.json", { cache: "no-cache" })
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
