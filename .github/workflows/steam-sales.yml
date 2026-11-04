@@ -49,7 +49,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add gas/history.json
           git diff-index --quiet HEAD || git commit -m "chore: update scrape history [skip ci]"
-          git push
+          git push origin HEAD:main
 
       - name: Send results to Google Apps Script
         env:
@@ -57,20 +57,17 @@ jobs:
           GAS_TOKEN: ${{ secrets.GAS_TOKEN }}
         run: node gas/scraper/send_to_gas.js --games games.json
 
-      # 공개 저장소(steam-sale-alert-site)에 앱 데이터만 밀어넣는다.
-      # 이 저장소를 푸시하면 공개 저장소의 Pages 워크플로가 자동 배포한다.
-      # SITE_REPO 는 Variables 탭에도 Secrets 탭에도 있을 수 있으므로 둘 다 읽는다.
-      # (저장소 이름은 공개 정보라 Secret 에 두어도 무방하다)
-      - name: Push games.json to site folder (same repo)
+      # 수집한 games.json 을 docs/ 에 반영해 GitHub Pages 가 자동 배포되게 한다.
+      # 커밋 메시지에 [skip ci] 를 넣지 않는다. 넣으면 pages.yml 이 건너뛰어진다.
+      - name: Push games.json to docs folder (same repo)
         run: |
-          cd /tmp
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          cp "$GITHUB_WORKSPACE/site/games.json" site/games.json
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          cp games.json docs/games.json
 
-          git -C . add site/games.json
-          git -C . diff-index --quiet HEAD || git commit -m "chore: update games data [skip ci]"
-          git -C . push origin main
+          git add docs/games.json
+          git diff --cached --quiet || git commit -m "chore: update games data"
+          git push origin HEAD:main
 
       - name: Upload scrape output on failure
         if: failure()

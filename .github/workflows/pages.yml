@@ -31,12 +31,12 @@ jobs:
       - name: Prepare site directory
         run: |
           rm -rf .git .github
-          touch .nojekyll
+          touch docs/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
+          path: ./docs
 
       - name: Deploy to GitHub Pages
         id: deployment

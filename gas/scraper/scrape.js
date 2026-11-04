@@ -12,7 +12,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import minimist from "minimist";
 
 const SEARCH_URL =
@@ -93,7 +94,7 @@ const RE_ORIGINAL = /class="discount_original_price">([^<]*)</;
 const RE_FINAL = /class="discount_final_price">([^<]*)</;
 const RE_TOOLTIP = /class="search_review_summary[^"]*"[^>]*data-tooltip-html="([^"]*)"/;
 
-const HISTORY_FILE = "gas/history.json";
+const HISTORY_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "history.json");
 
 export function decodeEntities(value) {
   return value
