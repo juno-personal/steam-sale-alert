@@ -17,9 +17,9 @@ export function boot(data) {
   state.dataDate = (data.scrapedAt || "").slice(0, 10);
   state.list = data.games || [];
 
-  // 가격 상한을 먼저 정한 뒤에 저장된 필터를 복원해야 한다.
-  // 순서가 바뀌면 priceMin/max 의 max 가 아직 0 이어서 복원값이 깨진다.
-  calibratePrice();
+  // 가격 상한 보정 (범위 필터 제거 후에는 불필요).
+  // 구버전 캐시 호환을 위해 실패해도 계속 진행한다.
+  try { calibratePrice(); } catch (e) { /* noop */ }
 
   // 범위 상태 초기화
   Object.keys(RANGES).forEach((key) => {
