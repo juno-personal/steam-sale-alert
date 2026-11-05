@@ -30,13 +30,6 @@
   <div class="filters-body" id="filtersBody" style="display:block">
   <div class="filters-inner">
 
-    <div class="row row-search">
-      <div class="field grow">
-        <label for="q">이름 검색</label>
-        <input id="q" type="search" placeholder="게임 이름 일부 입력" autocomplete="off" enterkeyhint="search">
-      </div>
-    </div>
-
     <div class="row row-sort">
       <div class="sort-group" role="group" aria-label="정렬">
         <button type="button" class="sort-btn" data-sort="price-asc">가격 낮은순</button>
@@ -53,8 +46,13 @@
         <input id="hideSeen" type="checkbox">
         <span>이미 본 게임 숨기기</span>
       </label>
-      <div class="spacer"></div>
-      <button id="reset" type="button" class="ghost">필터 초기화</button>
+    </div>
+
+    <div class="row row-search">
+      <div class="field grow">
+        <label for="q">이름 검색</label>
+        <input id="q" type="search" placeholder="게임 이름 일부 입력" autocomplete="off" enterkeyhint="search">
+      </div>
     </div>
 
     <!-- 정렬 상태 보관용 (JS 호환) -->

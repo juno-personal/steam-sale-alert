@@ -81,22 +81,20 @@ export function bind() {
     if (img.parentNode) img.parentNode.replaceChild(box, img);
   }, true);
 
-  // 필터 초기화
-  el.reset.addEventListener("click", () => {
-    try { localStorage.removeItem("ssa.filters.v1"); } catch (e) { /* noop */ }
-    el.q.value = "";
-    el.sort.value = "reviews-desc";
-    document.querySelectorAll(".sort-btn").forEach((b) => {
-      b.classList.toggle("active", b.dataset.sort === "reviews-desc");
+  // 필터 초기화 버튼은 제거됨
+  if (el.reset) {
+    el.reset.addEventListener("click", () => {
+      try { localStorage.removeItem("ssa.filters.v1"); } catch (e) { /* noop */ }
+      el.q.value = "";
+      el.sort.value = "reviews-desc";
+      document.querySelectorAll(".sort-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.sort === "reviews-desc");
+      });
+      el.hideSeen.checked = false;
+      updateLabels();
+      renderReset();
     });
-    Object.keys(RANGES).forEach((key) => {
-      const full = fullRange(key);
-      setRangeState(key, full.lo, full.hi);
-    });
-    el.hideSeen.checked = false;
-    updateLabels();
-    renderReset();
-  });
+  }
 
   // 더 보기
   el.more.addEventListener("click", () => { render(false); });
