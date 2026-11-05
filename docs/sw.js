@@ -10,7 +10,7 @@
  * 셸 파일은 30KB 미만이라 네트워크 우선의 비용이 크지 않다.
  * 오프라인에서는 마지막 캐시를 쓴다.
  */
-var CACHE = "ssa-v13";
+var CACHE = "ssa-v14";
 
 var SHELL_FILES = [
   "./",
