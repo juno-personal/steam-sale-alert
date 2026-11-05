@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write # history.json 커밋 및 푸시
+  actions: write  # Pages 배포 워크플로를 명시적으로 트리거
 
 # 두 실행이 겹치면 history.json 충돌로 서로의 기록을 덮어쓴다.
 concurrency:
@@ -68,6 +69,16 @@ jobs:
           git add docs/games.json
           git diff --cached --quiet || git commit -m "chore: update games data"
           git push origin HEAD:main
+
+      # GITHUB_TOKEN 으로 만든 push 는 다른 워크플로를 자동으로 깨우지 않는다.
+      # (무한 재귀 방지) 그래서 Pages 배포를 명시적으로 dispatch 한다.
+      - name: Trigger Pages deploy
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pages.yml/dispatches" \
+            -d '{"ref":"main"}'
 
       - name: Upload scrape output on failure
         if: failure()
