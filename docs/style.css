@@ -424,3 +424,74 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 .install-text b { color: #fff; }
 .install button { padding: 6px 12px; font-size: 12px; }
 .install .dismiss { background: transparent; border: none; color: var(--text-dim); padding: 4px 6px; }
+
+/* ---------- 필터 UI 정돈 (가시성 개선) ---------- */
+.filters { background: linear-gradient(180deg, #22303f 0%, #1b2533 100%); }
+.filters-inner { padding: 14px 16px 16px; }
+.filters-inner .row {
+  margin-bottom: 12px;
+  gap: 14px;
+}
+.filters-inner .row:last-of-type { margin-bottom: 0; }
+
+/* 검색/정렬 행: 라벨을 카드 위쪽에 고정 */
+.field {
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: var(--radius);
+  padding: 8px 10px 10px;
+  gap: 6px;
+}
+.field label { margin-bottom: 2px; }
+.field.grow { flex: 1 1 260px; }
+
+/* 범위 필터 카드 */
+.rng {
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: var(--radius);
+  padding: 10px 12px 8px;
+  gap: 8px;
+}
+.rng-head { margin-bottom: 2px; }
+.rng-head label { font-size: 12px; color: var(--text); text-transform: none; letter-spacing: 0; font-weight: 600; }
+.rng-head output { font-size: 13px; }
+
+/* 좁은 화면에서 필터 접힘 시 요약 강조 */
+.filter-toggle { background: #1f2b3a; border: 1px solid var(--line); border-radius: var(--radius); }
+.ft-label { color: var(--blue); }
+.ft-summary { color: #fff; font-weight: 600; }
+.ft-count { color: var(--blue); font-weight: 700; }
+
+/* 초기화 버튼 강조 */
+#reset { border-color: var(--accent); color: var(--accent); }
+#reset:hover { background: rgba(26,159,255,.12); }
+
+/* 체크박스 행 정렬 */
+.row-last { padding-top: 4px; border-top: 1px solid rgba(255,255,255,.08); margin-top: 4px; }
+
+/* 모바일: 필터 패딩 축소 */
+@media (max-width: 860px) {
+  .filters-inner { padding: 10px 12px 12px; }
+  .filters-inner .row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .rng, .field { min-width: 0; flex: 1 1 auto; }
+  .spacer { display: none; }
+  .row-last { justify-content: space-between; }
+}
+
+/* 데스크톱: 범위 필터 2열 그리드 */
+@media (min-width: 861px) {
+  .filters-inner .row:nth-child(2),
+  .filters-inner .row:nth-child(3) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .filters-inner .row:nth-child(1) {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+}

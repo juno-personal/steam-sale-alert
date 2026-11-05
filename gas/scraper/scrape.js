@@ -109,17 +109,25 @@ export function decodeEntities(value) {
     .replace(/&amp;/g, "&"); // &amp;는 마지막에 디코드해야 이중 디코딩이 안 된다
 }
 
-/** 툴팁에서 긍정 평가 비율과 리뷰 수를 뽑는다. (영문/한글 응답 모두 지원) */
+/** 툴팁에서 긍정 평가 비율과 리뷰 수를 뽑는다. (영문/한글 응답 모두 지원)
+ *
+ * 한국어 리뷰가 충분해 Steam 이 한국어 기준으로 점수를 내는 경우에만
+ * "환경 설정에 따라 사용자의 언어로 작성된 평가에 기반" 문장이 붙는다.
+ * 그 문장이 없으면 Steam 이 전체(total) 리뷰 수로 폴백한 것이므로
+ * korean=false 로 표시하고, 최종 앱에서는 리뷰 수를 0으로 보여준다.
+ */
 export function parseReviewTooltip(tooltip) {
   const match =
     tooltip.match(/(\d{1,3})%\s+of\s+the\s+([\d,]+)\s+user reviews/i) ||
     tooltip.match(/([\d,]+)\s*개[^%]*?(\d{1,3})%/);
-  if (!match) return { ratingPct: null, reviewCount: null };
+  if (!match) return { ratingPct: null, reviewCount: null, korean: false };
+
+  const korean = /환경 설정에 따라 사용자의 언어/.test(tooltip);
 
   if (/user reviews/i.test(tooltip)) {
-    return { ratingPct: Number(match[1]), reviewCount: Number(match[2].replace(/,/g, "")) };
+    return { ratingPct: Number(match[1]), reviewCount: Number(match[2].replace(/,/g, "")), korean };
   }
-  return { reviewCount: Number(match[1].replace(/,/g, "")), ratingPct: Number(match[2]) };
+  return { reviewCount: Number(match[1].replace(/,/g, "")), ratingPct: Number(match[2]), korean };
 }
 
 export function parsePrice(text) {
@@ -277,7 +285,7 @@ export function parseResultsHtml(html) {
 
     const discount = extractDiscount(row);
     const tooltipMatch = row.match(RE_TOOLTIP);
-    const review = tooltipMatch ? parseReviewTooltip(decodeEntities(tooltipMatch[1])) : { ratingPct: null, reviewCount: null };
+    const review = tooltipMatch ? parseReviewTooltip(decodeEntities(tooltipMatch[1])) : { ratingPct: null, reviewCount: null, korean: false };
 
     games.push({
       i: idMatch[1],
@@ -285,6 +293,7 @@ export function parseResultsHtml(html) {
       d: discount,
       rawRating: review.ratingPct,
       c: review.reviewCount,
+      korean: review.korean,
       originalPrice: row.match(RE_ORIGINAL)?.[1]?.trim() || null,
       salePrice: row.match(RE_FINAL)?.[1]?.trim() || null,
       imageUrl: row.match(RE_IMAGE)?.[1] || null,
@@ -343,6 +352,8 @@ export function toCompact(raw) {
   for (const game of raw) {
     if (!game.i || !game.n) continue;
     if (game.d <= 0) continue;
+    // 수집 기준선은 Steam 이 보여주는 리뷰 수(폴백 포함)로 판단한다.
+    // 한국어 리뷰 수로 필터링하면 폴백 게임이 전부 탈락해 목록이 비어버린다.
     if (game.c === null || game.c < MIN_REVIEWS) continue;
 
     let rating = game.rawRating;
@@ -357,7 +368,9 @@ export function toCompact(raw) {
       n: game.n,
       d: game.d,
       r: Math.round(rating * 10) / 10,
-      c: game.c,
+      // 한국어 리뷰가 없는 게임은 Steam 이 전체(total) 수로 폴백한다.
+      // 그런 경우 최종 앱에서 0으로 표기해 '리뷰 많은 순' 정렬 시 하단으로 가게 한다.
+      c: game.korean === false ? 0 : game.c,
       o: parsePrice(game.originalPrice),
       s: parsePrice(game.salePrice),
       g: (game.imageUrl || "").match(IMG_REL_RE)?.[1] || null,
