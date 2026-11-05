@@ -523,19 +523,15 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   .filters.scrolled .filters-inner { padding-bottom: 4px !important; }
 }
 
-/* 데스크톱: 범위 필터 2열 그리드 */
+/* 데스크톱: 필터 행은 세로 스택 (검색/정렬/옵션 순) */
 @media (min-width: 861px) {
-  .filters-inner .row:nth-child(2),
-  .filters-inner .row:nth-child(3) {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    align-items: stretch;
+  .filters-inner .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
   }
-  .filters-inner .row:nth-child(1) {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 14px;
-    align-items: stretch;
+  .filters-inner .row.row-sort .sort-group {
+    flex-wrap: wrap;
   }
 }
