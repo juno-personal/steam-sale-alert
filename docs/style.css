@@ -499,7 +499,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 @media (max-width: 860px) {
   .filters-inner { padding: 6px 10px 8px !important; }
   .filters-inner .row { flex-direction: column; align-items: stretch; gap: 4px !important; margin-bottom: 4px !important; }
-  .field { min-width: 0; flex: 1 1 auto; padding: 4px 8px 6px !important; }
+  .field, .field.grow { min-width: 0; flex: 1 1 auto !important; padding: 4px 8px 6px !important; }
   .sort-group { gap: 4px; }
   .sort-btn { padding: 5px 8px; font-size: 11px; }
   .spacer { display: none; }
