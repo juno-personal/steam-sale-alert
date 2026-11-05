@@ -504,9 +504,22 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   .sort-btn { padding: 5px 8px; font-size: 11px; }
   .spacer { display: none; }
   .row-last { justify-content: space-between; margin-top: 2px; }
-  /* 스크롤 내리면 정렬/하단 필터 숨기고 검색만 남김 */
+  /* 스크롤 내리면 정렬/하단 필터가 부드럽게 사라지고 검색만 남김 */
+  .row-sort, .row-last {
+    transition: max-height .28s ease, opacity .22s ease, margin-bottom .28s ease, padding .28s ease;
+    overflow: hidden;
+    max-height: 200px;
+    opacity: 1;
+  }
   .filters.scrolled .row-sort,
-  .filters.scrolled .row-last { display: none; }
+  .filters.scrolled .row-last {
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    pointer-events: none;
+  }
   .filters.scrolled .filters-inner { padding-bottom: 4px !important; }
 }
 
