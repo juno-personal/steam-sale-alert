@@ -233,7 +233,7 @@ input[type=range] {
 
 .check { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; user-select: none; }
 .check input { width: 16px; height: 16px; accent-color: var(--accent); }
-.spacer { flex: 1; }
+.spacer { display: none; }
 
 button {
   font: inherit;
@@ -276,6 +276,10 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
  * 넓은 화면에서는 항상 펼쳐 둔다. */
 @media (max-width: 860px) {
   .filters-body { display: block; }
+  .filters-inner { padding: 8px 10px 10px; }
+  .filters-inner .row { margin-bottom: 6px; gap: 6px; }
+  .field { padding: 6px 8px 8px; }
+  .sort-btn { padding: 6px 10px; font-size: 12px; }
   .topbar { padding: 12px 14px 8px; }
   .brand { font-size: 18px; }
   main { padding: 12px; }
