@@ -294,6 +294,31 @@ function removeTriggers() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Script Properties 관리 (스크립트로 직접 변경)                       */
+/* ------------------------------------------------------------------ */
+
+/** GitHub 저장소 경로를 Script Property에 저장합니다. */
+function setGitHubRepo(repo) {
+  if (!repo) throw new Error("repo 인자가 필요합니다. 예: 'juno-personal/steam-sale-alert'");
+  PropertiesService.getScriptProperties().setProperty("GITHUB_REPO", repo);
+  console.log("GITHUB_REPO = " + repo);
+}
+
+/** 사이트 URL을 Script Property에 저장합니다 (Code.gs의 SITE_URL과 별개). */
+function setSiteUrl(url) {
+  if (!url) throw new Error("url 인자가 필요합니다.");
+  PropertiesService.getScriptProperties().setProperty("SITE_URL", url);
+  console.log("SITE_URL = " + url);
+}
+
+/** 자주 쓰는 설정을 한 번에 적용합니다. */
+function configureForJunoPersonal() {
+  setGitHubRepo("juno-personal/steam-sale-alert");
+  setSiteUrl("https://juno-personal.github.io/steam-sale-alert/");
+  console.log("설정 완료. GITHUB_PAT / SHARED_TOKEN 은 수동으로 확인하세요.");
+}
+
+/* ------------------------------------------------------------------ */
 /* 이메일 HTML (Gmail 호환: table + inline style)                      */
 /* ------------------------------------------------------------------ */
 
