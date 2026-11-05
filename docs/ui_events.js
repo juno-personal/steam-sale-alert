@@ -101,6 +101,25 @@ export function bind() {
   // 더 보기
   el.more.addEventListener("click", () => { render(false); });
 
+  // 모바일: 스크롤 내리면 정렬/하단 필터 숨기고 검색만 남김
+  let scrollTicking = false;
+  window.addEventListener("scroll", () => {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      scrollTicking = false;
+      if (window.innerWidth > 860) {
+        el.filters.classList.remove("scrolled");
+        return;
+      }
+      if (window.scrollY > 60) {
+        el.filters.classList.add("scrolled");
+      } else {
+        el.filters.classList.remove("scrolled");
+      }
+    });
+  }, { passive: true });
+
   // 필터 접기 토글은 제거됨 (항상 펼침)
   if (el.filterToggle) {
     el.filterToggle.addEventListener("click", () => {
