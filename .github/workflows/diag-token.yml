@@ -66,7 +66,7 @@ jobs:
             code=$(curl -s -o /dev/null -w '%{http_code}' \
               -H "Authorization: Bearer $tok" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/lostempus06-eng/$repo")
+              "https://api.github.com/repos/juno-personal/$repo")
             echo "  $repo -> $code"
           done
 
@@ -77,7 +77,7 @@ jobs:
           tok="${SITE_REPO_TOKEN//$'\r'/}"
           tok="${tok//$'\n'/}"
           # 소유자가 반드시 필요하다. github.com/이름 은 존재하지 않는 주소다.
-          repo="lostempus06-eng/steam-sale-alert-site"
+          repo="juno-personal/steam-sale-alert-site"
           echo "== git ls-remote forms =="
 
           for label in "x-access-token" "no-user" "git"; do
@@ -101,9 +101,9 @@ jobs:
           # curl 은 계정 이름을 직접 적는다. 두 경로 모두 소유자가 필요하다.
           echo "== curl, no auth =="
           for url in \
-            "https://github.com/lostempus06-eng/${repo}" \
-            "https://github.com/lostempus06-eng/${repo}.git/info/refs?service=git-upload-pack" \
-            "https://api.github.com/repos/lostempus06-eng/${repo}"; do
+            "https://github.com/juno-personal/${repo}" \
+            "https://github.com/juno-personal/${repo}.git/info/refs?service=git-upload-pack" \
+            "https://api.github.com/repos/juno-personal/${repo}"; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url" 2>/dev/null) || code="curl-error"
             echo "  $code  $url"
           done
@@ -123,14 +123,14 @@ jobs:
           echo "== git clone, verbose =="
           rm -rf /tmp/probe
           GIT_TERMINAL_PROMPT=0 git clone --depth 1 \
-            "https://github.com/lostempus06-eng/${repo}.git" /tmp/probe > /tmp/clone.log 2>&1
+            "https://github.com/juno-personal/${repo}.git" /tmp/probe > /tmp/clone.log 2>&1
           echo "  exit=$?"
           head -20 /tmp/clone.log | sed 's/^/  /'
 
           echo ""
           echo "== codeload tarball =="
           code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
-            "https://codeload.github.com/lostempus06-eng/${repo}/tar.gz/refs/heads/main") || code="curl-error"
+            "https://codeload.github.com/juno-personal/${repo}/tar.gz/refs/heads/main") || code="curl-error"
           echo "  $code  codeload"
 
       - name: What the token actually says

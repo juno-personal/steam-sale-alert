@@ -24,7 +24,7 @@ const ALERT_CONFIG = Object.freeze({
   RECIPIENT_PROP: "RECIPIENT_EMAIL",
   DEFAULT_WORKFLOW: "steam-sales.yml",
   DEFAULT_REF: "main",
-  SITE_URL: "https://lostempus06-eng.github.io/steam-sale-alert/",
+  SITE_URL: "https://juno-personal.github.io/steam-sale-alert/",
   IMG_PREFIX: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/",
 });
 
