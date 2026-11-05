@@ -17,6 +17,7 @@ export function apply() {
     const g = state.list[i];
     // 범위형 필터는 제거됨 (검색 + 정렬만 사용)
     if (f.hideSeen && g.f < state.dataDate) continue;
+    if (f.hideNoReview && !(g.c > 0)) continue;
     if (f.q && g.n.toLowerCase().indexOf(f.q) === -1) continue;
     out.push(g);
   }

@@ -11,6 +11,7 @@ export function readFilters() {
     q: el.q.value.trim().toLowerCase(),
     sort: el.sort.value,
     hideSeen: el.hideSeen.checked,
+    hideNoReview: el.hideNoReview.checked,
   };
   Object.keys(RANGES).forEach((key) => {
     const p = state.ranges[key] || fullRange(key);
@@ -50,5 +51,6 @@ export function loadFilters() {
       setRangeState(key, lo, hi);
     });
     el.hideSeen.checked = !!s.hideSeen;
+    el.hideNoReview.checked = !!s.hideNoReview;
   } catch (e) { /* noop */ }
 }

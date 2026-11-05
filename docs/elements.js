@@ -7,6 +7,7 @@ export const el = {
   q: document.getElementById("q"),
   sort: document.getElementById("sort"),
   hideSeen: document.getElementById("hideSeen"),
+  hideNoReview: document.getElementById("hideNoReview"),
   reset: document.getElementById("reset"),
   count: document.getElementById("count"),
   grid: document.getElementById("grid"),

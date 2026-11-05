@@ -39,5 +39,6 @@ export function updateSummary(f) {
   const parts = [];
   if (f.q) parts.push("'" + f.q + "'");
   if (f.hideSeen) parts.push("본 것 숨김");
+  if (f.hideNoReview) parts.push("한글 리뷰 없음 숨김");
   if (el.filterSummary) el.filterSummary.textContent = parts.length ? parts.join(" · ") : "전체";
 }

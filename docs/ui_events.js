@@ -71,6 +71,11 @@ export function bind() {
     renderReset();
   });
 
+  el.hideNoReview.addEventListener("change", () => {
+    saveFilters();
+    renderReset();
+  });
+
   // 이미지 로드 실패 시 폴백 타일로 교체
   el.grid.addEventListener("error", (e) => {
     const img = e.target;
@@ -91,6 +96,7 @@ export function bind() {
         b.classList.toggle("active", b.dataset.sort === "reviews-desc");
       });
       el.hideSeen.checked = false;
+      el.hideNoReview.checked = false;
       updateLabels();
       renderReset();
     });
