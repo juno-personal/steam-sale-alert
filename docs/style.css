@@ -1,12 +1,12 @@
 /* Steam 계열 다크 블루 테마 */
 :root {
-  --bg: #1b2838;
-  --bg-deep: #171a21;
-  --panel: #2a475e;
-  --panel-2: #1f2937;
-  --line: #3b5c73;
-  --text: #c7d5e0;
-  --text-dim: #8f98a0;
+  --bg: #121212;
+  --bg-deep: #0a0a0a;
+  --panel: #1e1e1e;
+  --panel-2: #181818;
+  --line: #2a2a2a;
+  --text: #e0e0e0;
+  --text-dim: #9a9a9a;
   --blue: #66c0f4;
   --green: #a4d007;
   --accent: #1a9fff;
@@ -29,7 +29,7 @@ body {
 
 /* ---------- 상단 바 ---------- */
 .topbar {
-  background: linear-gradient(180deg, #1b2838 0%, #16202c 100%);
+  background: linear-gradient(180deg, #181818 0%, #0a0a0a 100%);
   border-bottom: 1px solid #000;
   padding: 14px 16px 10px;
   padding-top: calc(14px + env(safe-area-inset-top));
@@ -78,7 +78,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
-  background: #22303f;
+  background: #1e1e1e;
   text-align: left;
 }
 .ft-label { font-weight: 700; font-size: 13px; color: #fff; }
@@ -121,7 +121,7 @@ body {
   left: 0; right: 0; top: 13px;
   height: 4px;
   border-radius: 2px;
-  background: #0e1620;
+  background: #0a0a0a;
   border: 1px solid var(--line);
 }
 .rng-fill {
@@ -211,7 +211,7 @@ body {
 
 input[type=search], select {
   width: 100%;
-  background: #0e1620;
+  background: #0a0a0a;
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -241,10 +241,10 @@ button {
   border-radius: var(--radius);
   border: 1px solid var(--line);
   padding: 8px 14px;
-  background: #22303f;
+  background: #1e1e1e;
   color: var(--text);
 }
-button:hover { background: #2b3b4d; }
+button:hover { background: #2a2a2a; }
 button.ghost { background: transparent; color: var(--text-dim); }
 
 /* ---------- 목록 ---------- */
@@ -290,7 +290,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   gap: 10px;
   align-items: center;
   background: var(--panel);
-  border: 1px solid #0e1620;
+  border: 1px solid #0a0a0a;
   border-left: 3px solid var(--green);
   border-radius: var(--radius);
   padding: 8px 10px;
@@ -298,7 +298,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   text-decoration: none;
   min-height: 58px;
 }
-.card:hover { background: #33526b; }
+.card:hover { background: #2a2a2a; }
 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .thumb {
@@ -307,7 +307,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   height: 32px;
   object-fit: cover;
   border-radius: 4px;
-  background: #0e1620;
+  background: #0a0a0a;
   display: block;
 }
 .thumb-fallback {
@@ -315,11 +315,11 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   width: 84px;
   height: 32px;
   border-radius: 4px;
-  background: #0e1620;
+  background: #0a0a0a;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #45596b;
+  color: #3a3a3a;
   font-weight: 700;
   font-size: 13px;
 }
@@ -341,7 +341,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 .discount {
   flex: 0 0 auto;
   background: var(--green);
-  color: #1b2838;
+  color: #121212;
   font-weight: 700;
   font-size: 12px;
   padding: 2px 7px;
@@ -375,7 +375,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.rating { color: #c7d5e0; }
+.rating { color: #e0e0e0; }
 .reviews { color: var(--text-dim); }
 .badge-new {
   display: inline-block;
@@ -415,7 +415,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   display: none;
   align-items: center;
   gap: 12px;
-  background: #2a475e;
+  background: #1e1e1e;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 11px 13px;
@@ -437,12 +437,12 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
   padding: 7px 12px;
   font-size: 12px;
   border-radius: var(--radius);
-  background: #22303f;
+  background: #1e1e1e;
   color: var(--text);
   border: 1px solid var(--line);
   transition: background .12s, color .12s, border-color .12s;
 }
-.sort-btn:hover { background: #2b3b4d; }
+.sort-btn:hover { background: #2a2a2a; }
 .sort-btn.active {
   background: var(--accent);
   color: #fff;
@@ -451,7 +451,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 }
 
 /* ---------- 필터 UI 정돈 (가시성 개선) ---------- */
-.filters { background: linear-gradient(180deg, #22303f 0%, #1b2533 100%); }
+.filters { background: linear-gradient(180deg, #1e1e1e 0%, #141414 100%); }
 .filters-inner { padding: 14px 16px 16px; }
 .filters-inner .row {
   margin-bottom: 12px;
@@ -483,7 +483,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 .rng-head output { font-size: 13px; }
 
 /* 좁은 화면에서 필터 접힘 시 요약 강조 */
-.filter-toggle { background: #1f2b3a; border: 1px solid var(--line); border-radius: var(--radius); }
+.filter-toggle { background: #1a1a1a; border: 1px solid var(--line); border-radius: var(--radius); }
 .ft-label { color: var(--blue); }
 .ft-summary { color: #fff; font-weight: 600; }
 .ft-count { color: var(--blue); font-weight: 700; }
