@@ -129,6 +129,8 @@ let timer = null;
 
 /** 설치 안내 */
 export function setupInstall() {
+  // 설치 안내 배너는 표시하지 않는다.
+  return;
   const standalone = window.matchMedia("(display-mode: standalone)").matches ||
                      window.navigator.standalone === true;
   if (standalone || localStorage.getItem("ssa.install.dismissed")) return;
