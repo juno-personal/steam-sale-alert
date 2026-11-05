@@ -15,10 +15,7 @@ export function apply() {
 
   for (let i = 0; i < state.list.length; i++) {
     const g = state.list[i];
-    if (g.s < f.priceMin || g.s > f.priceMax) continue;
-    if (g.d < f.discountMin || g.d > f.discountMax) continue;
-    if (g.r < f.ratingMin || g.r > f.ratingMax) continue;
-    if (g.c < f.reviewsMin || g.c > f.reviewsMax) continue;
+    // 범위형 필터는 제거됨 (검색 + 정렬만 사용)
     if (f.hideSeen && g.f < state.dataDate) continue;
     if (f.q && g.n.toLowerCase().indexOf(f.q) === -1) continue;
     out.push(g);

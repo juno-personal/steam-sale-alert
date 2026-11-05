@@ -28,14 +28,9 @@ function rangeText(key, f) {
   return fmt(Math.round(lo * 100) / 100) + "~" + fmt(Math.round(hi * 100) / 100);
 }
 
-/** 필터 조건 라벨 갱신 */
+/** 필터 조건 라벨 갱신 (범위 필터 제거됨) */
 export function updateLabels() {
-  const f = readFilters();
-  el.priceOut.textContent = rangeText("price", f);
-  el.discountOut.textContent = rangeText("discount", f);
-  el.ratingOut.textContent = rangeText("rating", f);
-  el.reviewsOut.textContent = rangeText("reviews", f);
-  updateSummary(f);
+  updateSummary();
 }
 
 /** 필터 요약 (접힌 상태 한 줄) */
@@ -43,10 +38,6 @@ export function updateSummary(f) {
   f = f || readFilters();
   const parts = [];
   if (f.q) parts.push("'" + f.q + "'");
-  Object.keys(RANGES).forEach((key) => {
-    const t = rangeText(key, f);
-    if (t !== "전체") parts.push((key === "rating" ? "★" : "") + t);
-  });
   if (f.hideSeen) parts.push("본 것 숨김");
-  el.filterSummary.textContent = parts.length ? parts.join(" · ") : "전체";
+  if (el.filterSummary) el.filterSummary.textContent = parts.length ? parts.join(" · ") : "전체";
 }

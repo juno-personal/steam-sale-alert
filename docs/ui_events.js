@@ -34,18 +34,20 @@ export function bind() {
     }, 140);
   };
 
-  // q, sort 입력 시 160ms 디바운스
-  ["q", "sort"].forEach((id) => {
-    el[id].addEventListener("input", () => {
-      if (id === "q") {
-        schedule();
-        return;
-      }
-      updateLabels();
-      saveFilters();
-      renderReset();
-    });
-    el[id].addEventListener("change", () => {
+  // q 입력 시 160ms 디바운스
+  el.q.addEventListener("input", () => { schedule(); });
+  el.q.addEventListener("change", () => {
+    updateLabels();
+    saveFilters();
+    renderReset();
+  });
+
+  // 정렬 버튼
+  document.querySelectorAll(".sort-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const v = btn.dataset.sort;
+      el.sort.value = v;
+      document.querySelectorAll(".sort-btn").forEach((b) => b.classList.toggle("active", b === btn));
       updateLabels();
       saveFilters();
       renderReset();
@@ -83,7 +85,10 @@ export function bind() {
   el.reset.addEventListener("click", () => {
     try { localStorage.removeItem("ssa.filters.v1"); } catch (e) { /* noop */ }
     el.q.value = "";
-    el.sort.value = "price-asc";
+    el.sort.value = "reviews-desc";
+    document.querySelectorAll(".sort-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.sort === "reviews-desc");
+    });
     Object.keys(RANGES).forEach((key) => {
       const full = fullRange(key);
       setRangeState(key, full.lo, full.hi);

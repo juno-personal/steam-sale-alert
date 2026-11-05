@@ -425,6 +425,29 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
 .install button { padding: 6px 12px; font-size: 12px; }
 .install .dismiss { background: transparent; border: none; color: var(--text-dim); padding: 4px 6px; }
 
+/* ---------- 정렬 버튼 그룹 ---------- */
+.sort-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sort-btn {
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  background: #22303f;
+  color: var(--text);
+  border: 1px solid var(--line);
+  transition: background .12s, color .12s, border-color .12s;
+}
+.sort-btn:hover { background: #2b3b4d; }
+.sort-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
 /* ---------- 필터 UI 정돈 (가시성 개선) ---------- */
 .filters { background: linear-gradient(180deg, #22303f 0%, #1b2533 100%); }
 .filters-inner { padding: 14px 16px 16px; }

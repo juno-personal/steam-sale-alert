@@ -33,7 +33,12 @@ export function loadFilters() {
     const s = JSON.parse(localStorage.getItem(LS_KEY) || "null");
     if (!s) return;
     if (s.q) el.q.value = s.q;
-    if (s.sort) el.sort.value = s.sort;
+    if (s.sort) {
+      el.sort.value = s.sort;
+      document.querySelectorAll(".sort-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.sort === s.sort);
+      });
+    }
     Object.keys(RANGES).forEach((key) => {
       const full = fullRange(key);
       const lo = typeof s[key + "Min"] === "number"

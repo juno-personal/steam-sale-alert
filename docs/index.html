@@ -39,87 +39,21 @@
   <div class="filters-body" id="filtersBody">
   <div class="filters-inner">
 
-    <div class="row">
+    <div class="row row-search">
       <div class="field grow">
         <label for="q">이름 검색</label>
         <input id="q" type="search" placeholder="게임 이름 일부 입력" autocomplete="off" enterkeyhint="search">
       </div>
-      <div class="field">
-        <label for="sort">정렬</label>
-        <select id="sort">
-          <option value="price-asc">가격 낮은순</option>
-          <option value="price-desc">가격 높은순</option>
-          <option value="discount-desc">할인율 높은순</option>
-          <option value="rating-desc">평점 높은순</option>
-          <option value="reviews-desc" selected>리뷰 많은순</option>
-          <option value="name-asc">이름순</option>
-        </select>
-      </div>
     </div>
 
-    <div class="row">
-      <div class="rng">
-        <div class="rng-head">
-          <label id="priceLabel">가격대</label>
-          <output id="priceOut"></output>
-        </div>
-        <div class="rng-track" data-range="price">
-          <div class="rng-fill" id="priceFill"></div>
-          <input type="range" id="priceMin" min="0" max="1000" step="1" value="0" aria-labelledby="priceLabel">
-          <input type="range" id="priceMax" min="0" max="1000" step="1" value="1000" aria-labelledby="priceLabel">
-        </div>
-        <div class="rng-ticks" data-ticks="price"><span data-v="0">0</span></div>
-      </div>
-
-      <div class="rng">
-        <div class="rng-head">
-          <label id="discountLabel">할인율</label>
-          <output id="discountOut"></output>
-        </div>
-        <div class="rng-track" data-range="discount">
-          <div class="rng-fill" id="discountFill"></div>
-          <input type="range" id="discountMin" min="0" max="95" step="5" value="0" aria-labelledby="discountLabel">
-          <input type="range" id="discountMax" min="0" max="95" step="5" value="95" aria-labelledby="discountLabel">
-
-        </div>
-        <div class="rng-ticks" data-ticks="discount"><span data-v="0">0%</span><span data-v="95">95%</span></div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="rng">
-        <div class="rng-head">
-          <label id="ratingLabel">평점</label>
-          <output id="ratingOut"></output>
-        </div>
-        <div class="rng-track" data-range="rating">
-          <div class="rng-fill" id="ratingFill"></div>
-          <input type="range" id="ratingMin" min="0" max="100" step="5" value="0" aria-labelledby="ratingLabel">
-          <input type="range" id="ratingMax" min="0" max="100" step="5" value="100" aria-labelledby="ratingLabel">
-        </div>
-        <div class="rng-ticks" data-ticks="rating"><span data-v="0">0%</span><span data-v="100">100%</span></div>
-      </div>
-
-      <div class="rng">
-        <div class="rng-head">
-          <label id="reviewsLabel">리뷰 수</label>
-          <output id="reviewsOut"></output>
-        </div>
-        <div class="rng-track" data-range="reviews">
-          <div class="rng-fill" id="reviewsFill"></div>
-          <input type="range" id="reviewsMin" min="0" max="100" step="1" value="0" aria-labelledby="reviewsLabel">
-          <input type="range" id="reviewsMax" min="0" max="100" step="1" value="100" aria-labelledby="reviewsLabel">
-        </div>
-        <!-- 로그 스케일이므로 눈금을 실제 값 좌표에 배치한다 -->
-        <div class="rng-ticks" data-ticks="reviews">
-          <span data-v="500">500</span>
-          <span data-v="1000">1K</span>
-          <span data-v="5000">5K</span>
-          <span data-v="10000">10K</span>
-          <span data-v="30000">30K</span>
-          <span data-v="100000">100K</span>
-          <span data-v="1000000">1M+</span>
-        </div>
+    <div class="row row-sort">
+      <div class="sort-group" role="group" aria-label="정렬">
+        <button type="button" class="sort-btn" data-sort="price-asc">가격 낮은순</button>
+        <button type="button" class="sort-btn" data-sort="price-desc">가격 높은순</button>
+        <button type="button" class="sort-btn" data-sort="discount-desc">할인율 높은순</button>
+        <button type="button" class="sort-btn" data-sort="rating-desc">평점 높은순</button>
+        <button type="button" class="sort-btn active" data-sort="reviews-desc">리뷰 많은순</button>
+        <button type="button" class="sort-btn" data-sort="name-asc">이름순</button>
       </div>
     </div>
 
@@ -131,6 +65,16 @@
       <div class="spacer"></div>
       <button id="reset" type="button" class="ghost">필터 초기화</button>
     </div>
+
+    <!-- 정렬 상태 보관용 (JS 호환) -->
+    <select id="sort" hidden>
+      <option value="price-asc">가격 낮은순</option>
+      <option value="price-desc">가격 높은순</option>
+      <option value="discount-desc">할인율 높은순</option>
+      <option value="rating-desc">평점 높은순</option>
+      <option value="reviews-desc" selected>리뷰 많은순</option>
+      <option value="name-asc">이름순</option>
+    </select>
 
   </div>
   </div>

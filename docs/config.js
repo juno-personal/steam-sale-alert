@@ -18,9 +18,5 @@ export const LOG_HI = Math.log(REVIEW_HI);
 // 여기서 직접 맞춘다. 1% 단위로 움직여도 무의미하다.
 export const REVIEW_STOPS = [500, 1000, 5000, 10000, 30000, 100000, 1000000];
 
-export const RANGES = {
-  price:    { lo: 0, hi: 0, linear: true, snap: 1 },
-  discount: { lo: 0, hi: 95, linear: true, snap: 5 },
-  rating:   { lo: 0, hi: 100, linear: true, snap: 5 },
-  reviews:  { lo: REVIEW_LO, hi: REVIEW_HI, linear: false, stops: REVIEW_STOPS },
-};
+// 범위형 필터는 제거됨. 빈 객체로 유지해 기존 참조(Object.keys)가 깨지지 않게 한다.
+export const RANGES = {};
