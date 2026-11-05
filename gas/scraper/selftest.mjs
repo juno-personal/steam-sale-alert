@@ -106,10 +106,9 @@ check("원본 긍정률 존재", Boolean(first && Number.isFinite(first.rawRatin
   String(first && first.rawRating));
 
 /* ---------- toCompact ---------- */
-console.log("\ntoCompact (평점 하한 0 / 리뷰 500 이상)");
+console.log("\ntoCompact (평점 하한 0 / 폴백 리뷰 500 이상)");
 const compact = toCompact(parsed.games);
 check("필터 통과 게임이 있다", compact.length > 0, "n=" + compact.length);
-check("모두 리뷰 500 이상", compact.every((g) => g.c >= 500), "이탈 게임 있음");
 check("모두 할인율 양수", compact.every((g) => g.d > 0), "무료 게임 있음");
 check("모두 보정 평점을 갖는다", compact.every((g) => Number.isFinite(g.r)), "r 누락 있음");
 // i,n,d,r,c,o,s,g = 8개. 최초 발견일(f)은 main()에서 나중에 붙는다.
@@ -127,6 +126,25 @@ check("원본 긍정률은 저장하지 않는다", compact.every((g) => g.p ===
   check("리뷰 10만개 90% → 보정 88.8%", big && big.r === 88.8, String(big && big.r));
   check("같은 80% 면 표본이 클수록 보정값이 높다",
     mk(80, 100000).r > mk(80, 500).r, mk(80, 500).r + " vs " + mk(80, 100000).r);
+}
+
+// MIN_REVIEWS 는 폴백(전체 언어) 게임에만 적용되어야 한다.
+// 한국어 기준 리뷰가 500 미만이어도 Steam이 한국어 평가를 집계한 것이므로 유지한다.
+{
+  const base = { d: 10, rawRating: 90, originalPrice: "10", salePrice: "5", imageUrl: "" };
+  const keepKo = toCompact([{ ...base, i: "ko-small", n: "ko", c: 206, korean: true }]);
+  eq("한국어 리뷰 206개는 유지", keepKo.length, 1);
+  eq("한국어 리뷰 수를 그대로 저장", keepKo[0] && keepKo[0].c, 206);
+
+  const tinyKo = toCompact([{ ...base, i: "ko-tiny", n: "ko", c: 15, korean: true }]);
+  eq("한국어 리뷰 15개도 유지", tinyKo.length, 1);
+
+  const dropFb = toCompact([{ ...base, i: "fb-small", n: "fb", c: 499, korean: false }]);
+  eq("폴백 게임 499개는 제외", dropFb.length, 0);
+
+  const keepFb = toCompact([{ ...base, i: "fb-big", n: "fb", c: 500, korean: false }]);
+  eq("폴백 게임 500개는 유지", keepFb.length, 1);
+  eq("폴백 게임은 c=0 으로 저장", keepFb[0] && keepFb[0].c, 0);
 }
 
 // 이미지 상대경로. 해시 디렉터리는 있을 수도 없을 수도 있다.

@@ -1,7 +1,8 @@
 /**
  * Steam 공식 스토어 검색 API 기반 할인 스크래퍼
  *
- * - 평점 하한 0 / 리뷰 500 이상인 게임을 apps.json 스키마로 수집
+ * - 평점 하한 0 / 폴백(전체 언어) 리뷰 500 이상인 게임을 apps.json 스키마로 수집
+ *   (한국어 기준 리뷰 수가 표시되는 게임은 리뷰가 적어도 버리지 않는다)
  * - history.json 으로 최초 발견일(firstSeenAt)을 관리하고 만료시키지 않는다.
  *   이번 실행에 없던 게임은 기록에서 제거되므로 파일 크기가 스스로 제한된다.
  * - 부분 실패 허용: 개별 페이지 실패는 건너뛰고 진행한다.
@@ -28,6 +29,10 @@ const MAX_RETRIES = 5;
 
 // 스크랩 단계 기준선. 여기서 잘린 게임만 앱에 올라가므로
 // 앱의 평점/리뷰수 필터는 이 범위 안에서만 움직일 수 있다.
+// MIN_REVIEWS 는 '폴백(전체 언어)' 게임에만 적용한다.
+// 한국어 기준 수치가 표시되는 게임은 한국어 평가가 실제로 집계된 것이므로
+// 리뷰 수가 500 미만이어도 유지한다. (과거에는 이 게임들까지 잘려
+// 한국어 리뷰 206개 같은 게임이 목록에서 사라졌다.)
 const MIN_RATING = 0;
 const MIN_REVIEWS = 500;
 
@@ -352,9 +357,11 @@ export function toCompact(raw) {
   for (const game of raw) {
     if (!game.i || !game.n) continue;
     if (game.d <= 0) continue;
-    // 수집 기준선은 Steam 이 보여주는 리뷰 수(폴백 포함)로 판단한다.
-    // 한국어 리뷰 수로 필터링하면 폴백 게임이 전부 탈락해 목록이 비어버린다.
-    if (game.c === null || game.c < MIN_REVIEWS) continue;
+    // 수집 기준선은 Steam 이 폴백한 '전체 언어' 리뷰 수에만 적용한다.
+    // 한국어 기준 수치가 있는 게임은 리뷰 수와 무관하게 유지한다.
+    // (한국어 리뷰 수로 500을 적용하면 206개짜리 게임이 통째로 사라진다.)
+    if (game.c === null) continue;
+    if (game.korean === false && game.c < MIN_REVIEWS) continue;
 
     let rating = game.rawRating;
     if (game.rawRating !== null && game.c > 0) {
