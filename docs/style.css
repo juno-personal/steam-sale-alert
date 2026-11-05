@@ -50,7 +50,7 @@ body {
 .stats b { color: var(--text); font-weight: 700; }
 .stamp {
   max-width: 1600px;
-  margin: 4px auto 0;
+  margin: 4px 0 0;
   color: #5f6b78;
   font-size: 11px;
 }
@@ -94,7 +94,7 @@ body {
 .filters.open .ft-caret { transform: rotate(180deg); }
 .ft-count { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
 
-.filters-inner { max-width: 1240px; margin: 0 auto; padding: 12px 16px; }
+.filters-inner { max-width: 1600px; margin: 0; padding: 12px 16px; }
 .row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 10px; flex-wrap: wrap; }
 .row-last { margin-bottom: 0; align-items: center; }
 /* ---------- 범위형 필터 (양핸들 슬라이더) ---------- */
@@ -248,7 +248,7 @@ button:hover { background: #2a2a2a; }
 button.ghost { background: transparent; color: var(--text-dim); }
 
 /* ---------- 목록 ---------- */
-main { max-width: 1240px; margin: 0 auto; padding: 16px; }
+main { max-width: 1600px; margin: 0; padding: 16px; }
 
 .result-bar {
   display: flex;
