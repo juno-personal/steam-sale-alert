@@ -10,7 +10,7 @@
  * 셸 파일은 30KB 미만이라 네트워크 우선의 비용이 크지 않다.
  * 오프라인에서는 마지막 캐시를 쓴다.
  */
-var CACHE = "ssa-v3";
+var CACHE = "ssa-v4";
 
 var SHELL_FILES = [
   "./",
@@ -54,7 +54,7 @@ self.addEventListener("fetch", function (e) {
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(
-    fetch(req).then(function (res) {
+    fetch(req, { cache: "no-cache" }).then(function (res) {
       if (res && res.status === 200 && res.type === "basic") {
         var copy = res.clone();
         caches.open(CACHE).then(function (c) { c.put(req, copy); });
