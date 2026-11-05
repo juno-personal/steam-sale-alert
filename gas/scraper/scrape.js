@@ -386,15 +386,14 @@ function buildSearchUrl(start) {
 /**
  * 이메일 상위 N개 선정 기준.
  *
- * 보정 평점 내림차순 → 리뷰 수 내림차순.
- * toCompact 가 이미 보정값을 r 에 넣어 두므로 다시 계산하지 않는다.
- * 리뷰 500개짜리 80% 와 리뷰 10만짜리 90% 를 비교하면 보정값이
- * 전자를 밀어낸다. "검증된 인기 게임"을 먼저 알리는 의도다.
+ * 리뷰 수 내림차순 → 보정 평점 내림차순.
+ * 사용자가 "리뷰 많은 순"으로 받기를 원하므로 리뷰 수를 1순위로 둔다.
+ * 리뷰 수가 같으면 보정 평점이 높은 쪽이 먼저 온다.
  */
 export function rankForEmail(games) {
   return games
     .slice()
-    .sort((a, b) => b.r - a.r || b.c - a.c || (a.i < b.i ? -1 : 1));
+    .sort((a, b) => b.c - a.c || b.r - a.r || (a.i < b.i ? -1 : 1));
 }
 
 function loadHistory() {

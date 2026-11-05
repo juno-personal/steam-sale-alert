@@ -147,26 +147,24 @@ console.log("     예시(해시) " + (hashed[0] ? hashed[0].g : "-"));
 console.log("     예시(일반) " + (plain[0] ? plain[0].g : "-"));
 
 /* ---------- rankForEmail ---------- */
-console.log("\nrankForEmail (보정 평점 내림차순 → 리뷰 내림차순)");
-// 리뷰 100개짜리 100% vs 리뷰 2만짜리 96%
-// 원본 긍정률만 보면 100%가 앞서지만, 표본 보정값(87.53 vs 93.67)으로
-// 검증된 2만건 게임이 먼저 온다. 이 로직의 존재 이유다.
+console.log("\nrankForEmail (리뷰 수 내림차순 → 보정 평점 내림차순)");
+// 리뷰 수가 가장 많은 게임이 먼저 온다.
 const ranked = rankForEmail([
   { i: "small-perfect", r: 87.5, c: 100 },
   { i: "big-good", r: 93.7, c: 20000 },
   { i: "mid", r: 94.6, c: 3000 },
 ]);
 const order = ranked.map((g) => g.i);
-eq("보정값 94.6 이 1위", order[0], "mid");
-eq("보정값 93.7 이 2위", order[1], "big-good");
-eq("보정값 87.5 이 꼴찌", order[order.length - 1], "small-perfect");
+eq("리뷰 2만개가 1위", order[0], "big-good");
+eq("리뷰 3천개가 2위", order[1], "mid");
+eq("리뷰 100개가 꼴찌", order[order.length - 1], "small-perfect");
 
-// 보정값이 같으면 리뷰 수가 많은 쪽이 먼저
+// 리뷰 수가 같으면 보정 평점이 높은 쪽이 먼저
 const tie = rankForEmail([
-  { i: "a", r: 95, c: 10000 },
+  { i: "a", r: 90, c: 20000 },
   { i: "b", r: 95, c: 20000 },
 ]);
-eq("동점이면 리뷰 수 우선", tie[0].i, "b");
+eq("동점이면 보정 평점 우선", tie[0].i, "b");
 
 eq("100건이 그대로 유지된다", rankForEmail(
   Array.from({ length: 100 }, (_, k) => ({ i: String(k), r: 100, c: 100000 - k }))
