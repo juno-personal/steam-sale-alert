@@ -30,7 +30,7 @@ export function header() {
  */
 export function calibratePrice() {
   // 범위형 필터가 제거되어 가격 상한 보정이 필요 없다.
-  return;
+  if (!el.priceMin) return;
   const prices = state.list.map((g) => g.s).sort((a, b) => a - b);
   if (!prices.length) return;
   const max = Math.max(10, Math.ceil(prices[prices.length - 1]));
