@@ -56,7 +56,7 @@ export function render(reset) {
   el.count.innerHTML =
     "조건 <b>" + list.length.toLocaleString("ko-KR") + "</b>개" +
     (list.length ? " 중 <b>" + state.shown.toLocaleString("ko-KR") + "</b>개 표시" : "");
-  el.countMini.textContent = list.length.toLocaleString("ko-KR") + "개";
+  if (el.countMini) el.countMini.textContent = list.length.toLocaleString("ko-KR") + "개";
   el.empty.hidden = list.length > 0;
   el.more.hidden = state.shown >= list.length;
   el.more.textContent = "더 보기 (" + (list.length - state.shown).toLocaleString("ko-KR") + "개 남음)";

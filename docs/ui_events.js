@@ -101,11 +101,13 @@ export function bind() {
   // 더 보기
   el.more.addEventListener("click", () => { render(false); });
 
-  // 좁은 화면에서만 필터 접기 토글
-  el.filterToggle.addEventListener("click", () => {
-    const open = el.filters.classList.toggle("open");
-    el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
-  });
+  // 필터 접기 토글은 제거됨 (항상 펼침)
+  if (el.filterToggle) {
+    el.filterToggle.addEventListener("click", () => {
+      const open = el.filters.classList.toggle("open");
+      el.filterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
 
   // 무한 스크롤 (IntersectionObserver + fallback scroll)
   if ("IntersectionObserver" in window) {

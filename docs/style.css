@@ -275,9 +275,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 16px; }
  * 기본은 접힌 상태로 조건 요약만 한 줄에 보여주고, 눌러서 펼친다.
  * 넓은 화면에서는 항상 펼쳐 둔다. */
 @media (max-width: 860px) {
-  .filters-head { display: flex; }
-  .filters-body { display: none; }
-  .filters.open .filters-body { display: block; }
+  .filters-body { display: block; }
   .topbar { padding: 12px 14px 8px; }
   .brand { font-size: 18px; }
   main { padding: 12px; }
