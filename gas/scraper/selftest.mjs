@@ -19,6 +19,9 @@ import {
   parseResultsHtml,
   toCompact,
   rankForEmail,
+  measureHealth,
+  averageHealth,
+  assertPublishable,
 } from "./scrape.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -163,6 +166,59 @@ const plain = relOk.filter((g) => /^[0-9a-f]{40}\//.test(g.g) === false);
 console.log("     해시 있음 " + hashed.length + " / 해시 없음 " + plain.length);
 console.log("     예시(해시) " + (hashed[0] ? hashed[0].g : "-"));
 console.log("     예시(일반) " + (plain[0] ? plain[0].g : "-"));
+
+/* ---------- 필드 유효도 (health) ---------- */
+// 2026-11 사고: 세일 목록 뒤쪽 페이지는 리뷰가 하나도 없는 게임뿐이라
+// <div class="search_reviewscore"> 가 비어 있다. 예전에는 전체 행을 분모로
+// 써서 정상 실행도 79.5% 로 떨어졌고, 발행이 중단됐다.
+// 리뷰 필드는 '툴팁이 있는 행'에서만 재야 한다.
+console.log("\nmeasureHealth (리뷰 없는 행은 분모에서 제외)");
+{
+  const stripped = parseResultsHtml(
+    html.replace(/<span class="search_review_summary[\s\S]*?<\/span>/g, "")
+  );
+  eq("리뷰 툴팁을 지워도 행은 그대로", stripped.games.length, parsed.games.length);
+  eq("툴팁이 있는 행 0개", stripped.games.filter((g) => g.hasReviewTooltip).length, 0);
+
+  const h = measureHealth(stripped.games);
+  eq("구조 필드(할인율)는 100%", h.d, 1);
+  eq("구조 필드(제목)는 100%", h.n, 1);
+  eq("리뷰 없는 페이지만 있어도 health 100%", averageHealth([h]), 1);
+
+  // 실제 실행은 정상 페이지 + 리뷰 없는 페이지의 평균이므로 100% 근처여야 한다.
+  const mixed = averageHealth([measureHealth(parsed.games), h]);
+  check("정상 페이지와 섞여도 99% 이상", mixed > 0.99, (mixed * 100).toFixed(1) + "%");
+
+  // 툴팁 문구 형식이 바뀌면(마크업 변경) 리뷰 필드가 0 이 되어 잡힌다.
+  const drift = parseResultsHtml(
+    html.replace(/data-tooltip-html="[^"]*"/g, 'data-tooltip-html="평가 정보 없음"')
+  );
+  const bad = measureHealth(drift.games);
+  eq("툴팁 존재는 그대로 인식", bad.reviewed, parsed.games.length);
+  eq("문구가 바뀌면 리뷰 수 파싱 0", bad.c, 0);
+  eq("문구가 바뀌면 긍정률 파싱 0", bad.rawRating, 0);
+  check("그때 health 는 하한 아래로 떨어진다",
+    averageHealth([bad]) < 0.8, (averageHealth([bad]) * 100).toFixed(1) + "%");
+}
+
+/* ---------- 발행 안전장치 ---------- */
+console.log("\nassertPublishable");
+{
+  const many = (n) => Array.from({ length: n }, (_, k) => ({
+    i: String(k), n: "g" + k, d: 10, c: 1000, rawRating: 90,
+  }));
+  const ok = { games: many(600), health: 1, pagesFetched: 10, pagesFailed: 0,
+    fullRun: true, headReviewRatio: 0.98 };
+  const err = (result) => {
+    try { assertPublishable(result, 500); return null; } catch (e) { return e.message; }
+  };
+
+  eq("정상 결과는 통과", err(ok), null);
+  check("리뷰 툴팁 인식률이 무너지면 중단",
+    /리뷰 툴팁/.test(err({ ...ok, headReviewRatio: 0.1 }) || ""), String(err({ ...ok, headReviewRatio: 0.1 })));
+  check("게임 수가 급감하면 중단", Boolean(err({ ...ok, games: many(400), headReviewRatio: 1 })));
+  check("health 가 낮으면 중단", Boolean(err({ ...ok, health: 0.5 })));
+}
 
 /* ---------- rankForEmail ---------- */
 console.log("\nrankForEmail (리뷰 수 내림차순 → 보정 평점 내림차순)");

@@ -59,7 +59,19 @@ const SAFE_MIN_RATE = 0.5;    // 직전 실행 대비 비율. 이보다 많이 �
 const SAFE_MIN_HEALTH = 0.8;  // 필드 유효 평균 하한
 // 원시 파싱 결과의 필드명이다. toCompact 이후의 짧은 키(r 등)와 다르므로
 // 반드시 이쪽 이름을 쓴다. 틀리면 정상 데이터도 "비어 있다"고 오판한다.
-const SAFE_FIELDS = ["d", "c", "rawRating", "n"];
+//
+// 구조 필드: 모든 행에 반드시 있어야 한다. 이게 비면 마크업이 깨진 것이다.
+// 리뷰 필드: 리뷰 툴팁이 있는 행에서만 잰다.
+//
+// 2026-11 실측: specials 목록 뒤쪽(start 5400 이후)은 리뷰가 한 개도 없는
+// 신작/무명 게임뿐이라 <div class="search_reviewscore"> 가 전부 비어 있다.
+// 그런데 예전에는 전체 행을 분모로 썼기 때문에, 정상 실행인데도 뒤쪽
+// 페이지들이 50% 를 깔고 앉아 평균이 79.5% 로 떨어져 발행이 중단됐다.
+// (정규식은 멀쩡했다. 같은 실행에서 d/n 은 100%, 앞쪽 페이지 리뷰는 98~100%.)
+// 리뷰가 표시되지 않은 행은 파싱 실패가 아니므로 분모에서 뺀다.
+const SAFE_STRUCT_FIELDS = ["d", "n"];
+const SAFE_REVIEW_FIELDS = ["c", "rawRating"];
+const SAFE_FIELDS = [...SAFE_STRUCT_FIELDS, ...SAFE_REVIEW_FIELDS];
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -97,7 +109,12 @@ const RE_DISCOUNT_ATTR = /data-discount="(\d+)"/;
 const RE_DISCOUNT_TEXT = /class="[^"]*discount_pct[^"]*"[^>]*>\s*-?(\d+)\s*%/;
 const RE_ORIGINAL = /class="discount_original_price">([^<]*)</;
 const RE_FINAL = /class="discount_final_price">([^<]*)</;
-const RE_TOOLTIP = /class="search_review_summary[^"]*"[^>]*data-tooltip-html="([^"]*)"/;
+// 리뷰 툴팁은 속성 이름만 보고 '존재'를 판정하고, 내용 해석은
+// parseReviewTooltip 이 맡는다. 존재 판정과 해석을 분리해야
+// "툴팁은 있는데 문구 형식이 바뀐" 경우를 잡을 수 있다.
+const RE_TOOLTIP_PRESENT = /data-tooltip-html="/;
+const RE_TOOLTIP = /class="[^"]*search_review_summary[^"]*"[^>]*data-tooltip-html="([^"]*)"/;
+const RE_TOOLTIP_ANY = /data-tooltip-html="([^"]*)"/;
 
 const HISTORY_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "history.json");
 
@@ -212,6 +229,18 @@ export function assertPublishable(result, previousCount) {
     );
   }
 
+  // 리뷰 툴팁 '인식' 자체가 무너진 경우.
+  // 리뷰 필드는 툴팁이 있는 행에서만 재기 때문에, 툴팁 속성이 사라지면
+  // 분모가 0 이 되어 health 가 오히려 100% 로 보인다. 그 구멍을 막는다.
+  // 세일 목록 첫 페이지는 세일 중인 대작이 모이므로 리뷰가 거의 항상 붙는다
+  // (2026-11 실측 98%). 뒤쪽 페이지는 0% 인 것이 정상이라 여기서만 본다.
+  if (isFullRun && typeof result.headReviewRatio === "number" && result.headReviewRatio < 0.5) {
+    problems.push(
+      `첫 페이지 행의 ${(result.headReviewRatio * 100).toFixed(0)}% 만 리뷰 툴팁을 가집니다. ` +
+      `리뷰 마크업(search_review_summary / data-tooltip-html)이 바뀐 것 같습니다.`
+    );
+  }
+
   // 수집 자체가 대부분 실패한 경우
   if (result.pagesFetched > 0 && result.pagesFailed >= result.pagesFetched) {
     problems.push(`모든 페이지 수집에 실패했습니다(${result.pagesFailed}/${result.pagesFetched}).`);
@@ -221,7 +250,7 @@ export function assertPublishable(result, previousCount) {
     const detail = problems.map((p) => `  - ${p}`).join("\n");
     throw new Error(
       `발행을 중단합니다. games.json 과 history.json 은 수정하지 않았습니다.\n${detail}\n` +
-      `scrape.js 의 정규식(RE_DISCOUNT_*, RE_TITLE, RE_TOOLTIP, RE_IMAGE)을 Steam 응답과 대조하세요.`
+      `scrape.js 의 정규식(RE_DISCOUNT_*, RE_TITLE, RE_TOOLTIP*, RE_IMAGE)을 Steam 응답과 대조하세요.`
     );
   }
 }
@@ -232,16 +261,32 @@ export function assertPublishable(result, previousCount) {
  * 행 수는 정상이면서 특정 필드만 0 이 되는 경우가 실제 사고였다.
  * (할인율 0 → 99행 중 99행이 탈락)
  * 필드 단위로 보면 어느 쪽이 깨졌는지 바로 알 수 있다.
+ *
+ * 리뷰 필드(c, rawRating)는 리뷰 툴팁이 붙은 행만 분모로 쓴다.
+ * 툴팁이 아예 없는 행은 Steam 이 리뷰를 보여주지 않은 것이므로
+ * 파싱 실패가 아니다. (파일 상단 SAFE_* 주석 참고)
+ * 툴팁이 있는 행이 하나도 없으면 리뷰 파싱은 판정하지 않고 1 로 둔다.
+ * 그 사고는 assertPublishable 의 headReviewRatio 검사가 잡는다.
  */
 export function measureHealth(games) {
   const total = games.length || 1;
-  const health = { total: games.length };
-  for (const field of SAFE_FIELDS) {
-    const filled = games.filter((g) => {
-      const v = g[field];
-      return v !== null && v !== undefined && v !== 0 && v !== "";
-    }).length;
-    health[field] = filled / total;
+  const health = { total: games.length, reviewed: 0 };
+
+  const filled = (g, field) => {
+    const v = g[field];
+    return v !== null && v !== undefined && v !== 0 && v !== "";
+  };
+
+  for (const field of SAFE_STRUCT_FIELDS) {
+    health[field] = games.filter((g) => filled(g, field)).length / total;
+  }
+
+  const reviewed = games.filter((g) => g.hasReviewTooltip);
+  health.reviewed = reviewed.length;
+  for (const field of SAFE_REVIEW_FIELDS) {
+    health[field] = reviewed.length
+      ? reviewed.filter((g) => filled(g, field)).length / reviewed.length
+      : 1;
   }
   return health;
 }
@@ -289,7 +334,8 @@ export function parseResultsHtml(html) {
     }
 
     const discount = extractDiscount(row);
-    const tooltipMatch = row.match(RE_TOOLTIP);
+    const hasReviewTooltip = RE_TOOLTIP_PRESENT.test(row);
+    const tooltipMatch = row.match(RE_TOOLTIP) || row.match(RE_TOOLTIP_ANY);
     const review = tooltipMatch ? parseReviewTooltip(decodeEntities(tooltipMatch[1])) : { ratingPct: null, reviewCount: null, korean: false };
 
     games.push({
@@ -299,6 +345,7 @@ export function parseResultsHtml(html) {
       rawRating: review.ratingPct,
       c: review.reviewCount,
       korean: review.korean,
+      hasReviewTooltip,
       originalPrice: row.match(RE_ORIGINAL)?.[1]?.trim() || null,
       salePrice: row.match(RE_FINAL)?.[1]?.trim() || null,
       imageUrl: row.match(RE_IMAGE)?.[1] || null,
@@ -455,6 +502,11 @@ export async function scrape(maxPages) {
   let totalCount = 0;
   let fetched = 0;
   let failed = 0;
+  // 첫 성공 페이지의 리뷰 툴팁 인식률. 리뷰 마크업이 통째로 바뀌면
+  // 리뷰 필드 분모가 0 이 되어 health 로는 안 잡히므로 여기서 따로 본다.
+  let headReviewRatio;
+  let reviewedRows = 0;
+  let totalRows = 0;
 
   const limit = Math.min(maxPages || MAX_PAGES, MAX_PAGES);
 
@@ -471,7 +523,15 @@ export async function scrape(maxPages) {
 
     fetched += 1;
     totalCount = result.totalCount;
-    healthList.push(result.health);
+    // 빈 페이지를 health 평균에 넣으면 0.5 로 계산되어 정상 실행을 끌어내린다.
+    if (result.health.total > 0) {
+      healthList.push(result.health);
+      reviewedRows += result.health.reviewed;
+      totalRows += result.health.total;
+      if (headReviewRatio === undefined) {
+        headReviewRatio = result.health.reviewed / result.health.total;
+      }
+    }
 
     for (const game of result.games) {
       if (seen.has(game.i)) continue;
@@ -491,6 +551,11 @@ export async function scrape(maxPages) {
   const health = averageHealth(healthList);
   console.log(`[scrape] ${fetched}페이지 수집(실패 ${failed}), 조건 통과 ${games.length}개`);
   console.log(`[scrape] 필드 유효 평균 ${(health * 100).toFixed(1)}%`);
+  console.log(
+    `[scrape] 리뷰 툴팁 있는 행 ${reviewedRows}/${totalRows}` +
+    ` (${totalRows ? ((reviewedRows / totalRows) * 100).toFixed(1) : "0"}%)` +
+    ` — 첫 페이지 ${headReviewRatio === undefined ? "?" : (headReviewRatio * 100).toFixed(0) + "%"}`
+  );
 
   return {
     scrapedAt: new Date().toISOString(),
@@ -504,6 +569,7 @@ export async function scrape(maxPages) {
     // 부분 실행(--max-pages)에서는 개수 기준 비교가 무의미하므로 표시해 둔다.
     fullRun: limit >= MAX_PAGES,
     health,
+    headReviewRatio,
     games,
   };
 }
